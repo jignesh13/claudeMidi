@@ -1,0 +1,418 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		420A8C142F065D41006D9A95 /* FinalTryClaude.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420A8C132F065D41006D9A95 /* FinalTryClaude.swift */; };
+		420D27D42F025533001084E9 /* claudeMidiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27D32F025533001084E9 /* claudeMidiApp.swift */; };
+		420D27D62F025533001084E9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27D52F025533001084E9 /* ContentView.swift */; };
+		420D27D82F025536001084E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27D72F025536001084E9 /* Assets.xcassets */; };
+		420D27DB2F025536001084E9 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27DA2F025536001084E9 /* Preview Assets.xcassets */; };
+		420D27E22F02586D001084E9 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27E12F02586D001084E9 /* Test.swift */; };
+		420E60462F0E9A5E0020404C /* FluidSynth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; };
+		4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB132F03A24B00EF59DD /* AuGraph.swift */; };
+		4213DB282F04072500EF59DD /* AudioClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB272F04072500EF59DD /* AudioClass.swift */; };
+		422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728A2F078A2E00EE9B2B /* TrackRow.swift */; };
+		422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */; };
+		4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */; };
+		428E97942F02638B0069D44E /* PianoCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428E97932F02638B0069D44E /* PianoCopy.swift */; };
+		42FF6F5F2F051371006F90D0 /* ChatGpt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FF6F5E2F051371006F90D0 /* ChatGpt.swift */; };
+		42FF6F612F051798006F90D0 /* sample.mid in Resources */ = {isa = PBXBuildFile; fileRef = 42FF6F602F051798006F90D0 /* sample.mid */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		420A8C132F065D41006D9A95 /* FinalTryClaude.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalTryClaude.swift; sourceTree = "<group>"; };
+		420D27D02F025533001084E9 /* claudeMidi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = claudeMidi.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		420D27D32F025533001084E9 /* claudeMidiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = claudeMidiApp.swift; sourceTree = "<group>"; };
+		420D27D52F025533001084E9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		420D27D72F025536001084E9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		420D27DA2F025536001084E9 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		420D27E12F02586D001084E9 /* Test.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Test.swift; sourceTree = "<group>"; };
+		420E60452F0E9A5E0020404C /* FluidSynth.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = FluidSynth.xcframework; sourceTree = "<group>"; };
+		420E60482F0E9EDA0020404C /* claudeMidi-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "claudeMidi-Bridging-Header.h"; sourceTree = "<group>"; };
+		4213DB132F03A24B00EF59DD /* AuGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuGraph.swift; sourceTree = "<group>"; };
+		4213DB272F04072500EF59DD /* AudioClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioClass.swift; sourceTree = "<group>"; };
+		422D728A2F078A2E00EE9B2B /* TrackRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRow.swift; sourceTree = "<group>"; };
+		422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIDeviceView.swift; sourceTree = "<group>"; };
+		4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationMidi.swift; sourceTree = "<group>"; };
+		428E97932F02638B0069D44E /* PianoCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PianoCopy.swift; sourceTree = "<group>"; };
+		42FF6F5E2F051371006F90D0 /* ChatGpt.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatGpt.swift; sourceTree = "<group>"; };
+		42FF6F602F051798006F90D0 /* sample.mid */ = {isa = PBXFileReference; lastKnownFileType = audio.midi; path = sample.mid; sourceTree = "<group>"; };
+		42FF6F622F051A51006F90D0 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		420D27CD2F025533001084E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				420E60462F0E9A5E0020404C /* FluidSynth.xcframework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		420D27C72F025533001084E9 = {
+			isa = PBXGroup;
+			children = (
+				420D27D22F025533001084E9 /* claudeMidi */,
+				420D27D12F025533001084E9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		420D27D12F025533001084E9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				420D27D02F025533001084E9 /* claudeMidi.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		420D27D22F025533001084E9 /* claudeMidi */ = {
+			isa = PBXGroup;
+			children = (
+				420E60452F0E9A5E0020404C /* FluidSynth.xcframework */,
+				42FF6F622F051A51006F90D0 /* Info.plist */,
+				428E978C2F025B550069D44E /* Soundbank */,
+				420D27D32F025533001084E9 /* claudeMidiApp.swift */,
+				42FF6F602F051798006F90D0 /* sample.mid */,
+				420D27D52F025533001084E9 /* ContentView.swift */,
+				420D27D72F025536001084E9 /* Assets.xcassets */,
+				420D27D92F025536001084E9 /* Preview Content */,
+				420D27E12F02586D001084E9 /* Test.swift */,
+				428E97932F02638B0069D44E /* PianoCopy.swift */,
+				4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */,
+				4213DB132F03A24B00EF59DD /* AuGraph.swift */,
+				4213DB272F04072500EF59DD /* AudioClass.swift */,
+				42FF6F5E2F051371006F90D0 /* ChatGpt.swift */,
+				420A8C132F065D41006D9A95 /* FinalTryClaude.swift */,
+				422D728A2F078A2E00EE9B2B /* TrackRow.swift */,
+				422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */,
+				420E60482F0E9EDA0020404C /* claudeMidi-Bridging-Header.h */,
+			);
+			path = claudeMidi;
+			sourceTree = "<group>";
+		};
+		420D27D92F025536001084E9 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				420D27DA2F025536001084E9 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		428E978C2F025B550069D44E /* Soundbank */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = Soundbank;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		420D27CF2F025533001084E9 /* claudeMidi */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 420D27DE2F025536001084E9 /* Build configuration list for PBXNativeTarget "claudeMidi" */;
+			buildPhases = (
+				420D27CC2F025533001084E9 /* Sources */,
+				420D27CD2F025533001084E9 /* Frameworks */,
+				420D27CE2F025533001084E9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = claudeMidi;
+			productName = claudeMidi;
+			productReference = 420D27D02F025533001084E9 /* claudeMidi.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		420D27C82F025533001084E9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1420;
+				LastUpgradeCheck = 1420;
+				TargetAttributes = {
+					420D27CF2F025533001084E9 = {
+						CreatedOnToolsVersion = 14.2;
+					};
+				};
+			};
+			buildConfigurationList = 420D27CB2F025533001084E9 /* Build configuration list for PBXProject "claudeMidi" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 420D27C72F025533001084E9;
+			productRefGroup = 420D27D12F025533001084E9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				420D27CF2F025533001084E9 /* claudeMidi */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		420D27CE2F025533001084E9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				42FF6F612F051798006F90D0 /* sample.mid in Resources */,
+				420D27DB2F025536001084E9 /* Preview Assets.xcassets in Resources */,
+				420D27D82F025536001084E9 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		420D27CC2F025533001084E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */,
+				420A8C142F065D41006D9A95 /* FinalTryClaude.swift in Sources */,
+				4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */,
+				428E97942F02638B0069D44E /* PianoCopy.swift in Sources */,
+				420D27D62F025533001084E9 /* ContentView.swift in Sources */,
+				42FF6F5F2F051371006F90D0 /* ChatGpt.swift in Sources */,
+				4213DB282F04072500EF59DD /* AudioClass.swift in Sources */,
+				420D27D42F025533001084E9 /* claudeMidiApp.swift in Sources */,
+				4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */,
+				420D27E22F02586D001084E9 /* Test.swift in Sources */,
+				422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		420D27DC2F025536001084E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		420D27DD2F025536001084E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.2;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		420D27DF2F025536001084E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"claudeMidi/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = SEYSMTJ7FL;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/claudeMidi/FluidSynth.xcframework/**";
+				INFOPLIST_FILE = claudeMidi/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "PianoStream uses Bluetooth to connect to your piano.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "PianoStream uses Bluetooth to connect to your piano.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = fsdf;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pianostream.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = Adhock_PianoStream;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/claudeMidi/claudeMidi-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		420D27E02F025536001084E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"claudeMidi/Preview Content\"";
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = SEYSMTJ7FL;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/claudeMidi/FluidSynth.xcframework/**";
+				INFOPLIST_FILE = claudeMidi/Info.plist;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "PianoStream uses Bluetooth to connect to your piano.";
+				INFOPLIST_KEY_NSBluetoothPeripheralUsageDescription = "PianoStream uses Bluetooth to connect to your piano.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = fsdf;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pianostream.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = Adhock_PianoStream;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/claudeMidi/claudeMidi-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		420D27CB2F025533001084E9 /* Build configuration list for PBXProject "claudeMidi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				420D27DC2F025536001084E9 /* Debug */,
+				420D27DD2F025536001084E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		420D27DE2F025536001084E9 /* Build configuration list for PBXNativeTarget "claudeMidi" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				420D27DF2F025536001084E9 /* Debug */,
+				420D27E02F025536001084E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 420D27C82F025533001084E9 /* Project object */;
+}
