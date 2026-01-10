@@ -1,17 +1,20 @@
 import Foundation
 import AVFAudio
 
-final class MIDITrackState: ObservableObject {
-    let trackIndex: Int
-    let trackName: String
+final class MIDIChannelState: ObservableObject, Identifiable {
+    let id = UUID()
+    let channel: Int            // 0–15
+    let name: String            // "Ch 10 – Drums"
+
     @Published var muted = false
     @Published var solo = false
 
-    init(trackIndex: Int, trackName: String) {
-        self.trackIndex = trackIndex
-        self.trackName = trackName
+    init(channel: Int, name: String) {
+        self.channel = channel
+        self.name = name
     }
 }
+
 
 import Foundation
 
@@ -43,7 +46,7 @@ final class FluidSynthEngine {
         fluid_settings_setint(settings, "synth.midi-channels", 16)
         fluid_settings_setnum(settings, "synth.sample-rate", sampleRate)
         fluid_settings_setnum(settings, "synth.gain", 1.0)
-        fluid_settings_setint(settings, "synth.interpolation", 4)
+        fluid_settings_setint(settings, "synth.polyphony", 256)
 
         fluid_settings_setint(settings, "synth.reverb.active", 1)
         fluid_settings_setnum(settings, "synth.reverb.room-size", 0.7)
@@ -52,7 +55,7 @@ final class FluidSynthEngine {
 
         fluid_settings_setint(settings, "synth.chorus.active", 1)
         fluid_settings_setnum(settings, "synth.chorus.level", 2.0)
-        fluid_settings_setnum(settings, "synth.chorus.depth", 8.0)
+        fluid_settings_setnum(settings, "synth.chorus.depth", 6.0)
 
         synth = new_fluid_synth(settings)
         audioDriver = new_fluid_audio_driver(settings, synth)
@@ -160,11 +163,9 @@ final class FluidSynthEngine {
     // MARK: BANK + PROGRAM APPLY
     // ===============================
     private func applyBankAndProgram(_ ch: Int) {
-
         let bank: Int32 = (ch == 9)
             ? 128
             : Int32((bankMSB[ch] << 7) | bankLSB[ch])
-
         fluid_synth_bank_select(synth, Int32(ch), bank)
         fluid_synth_program_change(synth, Int32(ch), Int32(program[ch]))
     }
@@ -194,9 +195,12 @@ final class MIDIFluidPlayer: ObservableObject {
     private var sequence: MusicSequence?
     private var player: MusicPlayer?
     private var timer: Timer?
+    @Published var channels: [MIDIChannelState] = []
+    private var usedChannels = Set<Int>()
+    private var mutedChannels = Set<Int>()
+    private var soloChannels = Set<Int>()
 
     let synth = FluidSynthEngine()
-    @Published var tracks: [MIDITrackState] = []
     @Published var currentTime: TimeInterval = 0
     @Published var totalDuration: TimeInterval = 0
     @Published var isPlaying = false
@@ -248,9 +252,10 @@ final class MIDIFluidPlayer: ObservableObject {
         
         midiFileName = url.lastPathComponent
         
-        // Extract track information
-        extractTracks()
-        
+        detectUsedChannels()
+           buildChannelStates()
+           calculateDuration()
+
         // Calculate total duration
         calculateDuration()
         
@@ -258,28 +263,87 @@ final class MIDIFluidPlayer: ObservableObject {
         MusicPlayerSetSequence(player!, sequence!)
         MusicPlayerPreroll(player!)
     }
-
-    private func extractTracks() {
+    
+    private func detectUsedChannels() {
         guard let seq = sequence else { return }
-        
+
+        usedChannels.removeAll()
+
         var trackCount: UInt32 = 0
         MusicSequenceGetTrackCount(seq, &trackCount)
-        
-        tracks.removeAll()
-        trackMap.removeAll()
-        
+
         for i in 0..<trackCount {
             var track: MusicTrack?
-            MusicSequenceGetIndTrack(seq, UInt32(i), &track)
-            
+            MusicSequenceGetIndTrack(seq, i, &track)
             guard let track = track else { continue }
-            
-            let trackName = getTrackName(track: track, index: Int(i))
-            let trackState = MIDITrackState(trackIndex: Int(i), trackName: trackName)
-            tracks.append(trackState)
-            trackMap[track] = Int(i)
+
+            var iterator: MusicEventIterator?
+            NewMusicEventIterator(track, &iterator)
+            guard let it = iterator else { continue }
+            defer { DisposeMusicEventIterator(it) }
+
+            var hasEvent = DarwinBoolean(false)
+            MusicEventIteratorHasCurrentEvent(it, &hasEvent)
+
+            while hasEvent.boolValue {
+                var time = MusicTimeStamp()
+                var type = MusicEventType()
+                var data: UnsafeRawPointer?
+                var size: UInt32 = 0
+
+                MusicEventIteratorGetEventInfo(it, &time, &type, &data, &size)
+
+                if type == kMusicEventType_MIDIChannelMessage {
+                    let msg = data!.assumingMemoryBound(to: MIDIChannelMessage.self).pointee
+                    let channel = Int(msg.status & 0x0F)
+                    usedChannels.insert(channel)
+                }
+
+                MusicEventIteratorNextEvent(it)
+                MusicEventIteratorHasCurrentEvent(it, &hasEvent)
+            }
         }
     }
+    private func buildChannelStates() {
+        channels.removeAll()
+        mutedChannels.removeAll()
+        soloChannels.removeAll()
+
+        let sorted = usedChannels.sorted()
+
+        for ch in sorted {
+            let name: String
+            if ch == 9 {
+                name = "Ch 10 – Drums"
+            } else {
+                name = "Ch \(ch + 1)"
+            }
+            channels.append(MIDIChannelState(channel: ch, name: name))
+        }
+    }
+
+
+//    private func extractTracks() {
+//        guard let seq = sequence else { return }
+//
+//        var trackCount: UInt32 = 0
+//        MusicSequenceGetTrackCount(seq, &trackCount)
+//
+//        tracks.removeAll()
+//        trackMap.removeAll()
+//
+//        for i in 0..<trackCount {
+//            var track: MusicTrack?
+//            MusicSequenceGetIndTrack(seq, UInt32(i), &track)
+//
+//            guard let track = track else { continue }
+//
+//            let trackName = getTrackName(track: track, index: Int(i))
+//            let trackState = MIDITrackState(trackIndex: Int(i), trackName: trackName)
+//            tracks.append(trackState)
+//            trackMap[track] = Int(i)
+//        }
+//    }
 
     private func getTrackName(track: MusicTrack, index: Int) -> String {
         var iterator: MusicEventIterator?
@@ -413,30 +477,45 @@ final class MIDIFluidPlayer: ObservableObject {
             stop()
         }
     }
-
-    func setTrackMute(_ trackIndex: Int, muted: Bool) {
-        guard let seq = sequence, trackIndex < tracks.count else { return }
-        
-        var track: MusicTrack?
-        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
-        
-        if let track = track {
-            var muteValue: UInt32 = muted ? 1 : 0
-            MusicTrackSetProperty(track, kSequenceTrackProperty_MuteStatus, &muteValue, UInt32(MemoryLayout<UInt32>.size))
+    func setChannelMute(_ channel: Int, muted: Bool) {
+        if muted {
+            mutedChannels.insert(channel)
+        } else {
+            mutedChannels.remove(channel)
         }
     }
 
-    func setTrackSolo(_ trackIndex: Int, solo: Bool) {
-        guard let seq = sequence, trackIndex < tracks.count else { return }
-        
-        var track: MusicTrack?
-        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
-        
-        if let track = track {
-            var soloValue: UInt32 = solo ? 1 : 0
-            MusicTrackSetProperty(track, kSequenceTrackProperty_SoloStatus, &soloValue, UInt32(MemoryLayout<UInt32>.size))
+    func setChannelSolo(_ channel: Int, solo: Bool) {
+        if solo {
+            soloChannels.insert(channel)
+        } else {
+            soloChannels.remove(channel)
         }
     }
+
+//    func setTrackMute(_ trackIndex: Int, muted: Bool) {
+//        guard let seq = sequence, trackIndex < tracks.count else { return }
+//
+//        var track: MusicTrack?
+//        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
+//
+//        if let track = track {
+//            var muteValue: UInt32 = muted ? 1 : 0
+//            MusicTrackSetProperty(track, kSequenceTrackProperty_MuteStatus, &muteValue, UInt32(MemoryLayout<UInt32>.size))
+//        }
+//    }
+//
+//    func setTrackSolo(_ trackIndex: Int, solo: Bool) {
+//        guard let seq = sequence, trackIndex < tracks.count else { return }
+//
+//        var track: MusicTrack?
+//        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
+//
+//        if let track = track {
+//            var soloValue: UInt32 = solo ? 1 : 0
+//            MusicTrackSetProperty(track, kSequenceTrackProperty_SoloStatus, &soloValue, UInt32(MemoryLayout<UInt32>.size))
+//        }
+//    }
 
     func setTempo(_ bpm: Double) {
         guard let player = player else { return }
@@ -462,7 +541,19 @@ final class MIDIFluidPlayer: ObservableObject {
                         let data1  = UInt8((word >> 8) & 0xFF)
                         let data2  = UInt8(word & 0xFF)
 
+                        let channel = Int(status & 0x0F)
+
+                        // SOLO logic
+                        if !soloChannels.isEmpty {
+                            if !soloChannels.contains(channel) {
+                                continue
+                            }
+                        } else if mutedChannels.contains(channel) {
+                            continue
+                        }
+
                         synth.send(status: status, d1: data1, d2: data2)
+
                     }
                 }
             }
@@ -611,39 +702,39 @@ struct ContentView: View {
                 }
                 .padding(.horizontal)
 
-                // Track list with mute/solo
                 List {
-                    ForEach(player.tracks, id: \.trackIndex) { track in
+                    ForEach(player.channels) { ch in
                         HStack {
-                            Text(track.trackName)
+                            Text(ch.name)
                                 .lineLimit(1)
+
                             Spacer()
+
                             Toggle("Mute", isOn: Binding(
-                                get: { track.muted },
-                                set: { newValue in
-                                    track.muted = newValue
-                                    player.setTrackMute(track.trackIndex, muted: newValue)
+                                get: { ch.muted },
+                                set: { value in
+                                    ch.muted = value
+                                    player.setChannelMute(ch.channel, muted: value)
                                 }
                             ))
                             .labelsHidden()
                             .toggleStyle(.button)
-                            .buttonStyle(.bordered)
-                            .tint(track.muted ? .red : .gray)
-                            
+                            .tint(ch.muted ? .red : .gray)
+
                             Toggle("Solo", isOn: Binding(
-                                get: { track.solo },
-                                set: { newValue in
-                                    track.solo = newValue
-                                    player.setTrackSolo(track.trackIndex, solo: newValue)
+                                get: { ch.solo },
+                                set: { value in
+                                    ch.solo = value
+                                    player.setChannelSolo(ch.channel, solo: value)
                                 }
                             ))
                             .labelsHidden()
                             .toggleStyle(.button)
-                            .buttonStyle(.bordered)
-                            .tint(track.solo ? .green : .gray)
+                            .tint(ch.solo ? .green : .gray)
                         }
                     }
                 }
+
             }
             .padding()
             .navigationTitle("Fluid MIDI Player")
