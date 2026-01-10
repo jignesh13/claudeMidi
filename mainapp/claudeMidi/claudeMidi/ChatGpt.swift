@@ -1,4 +1,5 @@
 import Foundation
+import AVFAudio
 
 final class MIDITrackState: ObservableObject {
     let trackIndex: Int
@@ -15,29 +16,44 @@ final class MIDITrackState: ObservableObject {
 import Foundation
 
 final class FluidSynthEngine {
+
     private var settings: OpaquePointer!
     private var synth: OpaquePointer!
     private var audioDriver: OpaquePointer!
 
+    // Bank + program state
     private var bankMSB = Array(repeating: 0, count: 16)
     private var bankLSB = Array(repeating: 0, count: 16)
+    private var program = Array(repeating: 0, count: 16)
+
+    // Controller state
+    private var expression = Array(repeating: 127, count: 16)
+    private var sustain = Array(repeating: false, count: 16)
+
+    // RPN state (for pitch bend range)
+    private var rpnMSB = Array(repeating: 127, count: 16)
+    private var rpnLSB = Array(repeating: 127, count: 16)
+    private var pitchBendRange = Array(repeating: 2, count: 16) // semitones
 
     init(sampleRate: Double = 44100) {
         settings = new_fluid_settings()
 
+        fluid_settings_setstr(settings, "audio.driver", "coreaudio")
         fluid_settings_setint(settings, "synth.threadsafe-api", 0)
         fluid_settings_setint(settings, "synth.midi-channels", 16)
-        fluid_settings_setint(settings, "synth.drums-channel", 1)
         fluid_settings_setnum(settings, "synth.sample-rate", sampleRate)
-        fluid_settings_setnum(settings, "synth.gain", 2.0)
         fluid_settings_setint(settings, "synth.polyphony", 256)
+        fluid_settings_setnum(settings, "synth.gain", 1.0)
+        fluid_settings_setint(settings, "synth.interpolation", 4)
+
         fluid_settings_setint(settings, "synth.reverb.active", 1)
         fluid_settings_setnum(settings, "synth.reverb.room-size", 0.7)
         fluid_settings_setnum(settings, "synth.reverb.damp", 0.5)
+        fluid_settings_setnum(settings, "synth.reverb.level", 0.3)
+
         fluid_settings_setint(settings, "synth.chorus.active", 1)
-        fluid_settings_setnum(settings, "synth.chorus.nr", 3)
-        fluid_settings_setnum(settings, "synth.chorus.level", 2)
-        fluid_settings_setint(settings, "synth.interpolation", 3)
+        fluid_settings_setnum(settings, "synth.chorus.level", 2.0)
+        fluid_settings_setnum(settings, "synth.chorus.depth", 8.0)
 
         synth = new_fluid_synth(settings)
         audioDriver = new_fluid_audio_driver(settings, synth)
@@ -50,37 +66,108 @@ final class FluidSynthEngine {
     }
 
     func loadSoundFont(_ url: URL) {
-        let id = fluid_synth_sfload(synth, url.path, 1)
-        print("SoundFont load result:", id)
+        fluid_synth_sfload(synth, url.path, 1)
+
+        for ch in 0..<16 {
+            bankMSB[ch] = 0
+            bankLSB[ch] = 0
+            program[ch] = 0
+            expression[ch] = 127
+            sustain[ch] = false
+            pitchBendRange[ch] = 2
+        }
+
+        // GM drum channel
         fluid_synth_bank_select(synth, 9, 128)
         fluid_synth_program_change(synth, 9, 0)
     }
 
+    // ===============================
+    // MARK: MIDI EVENT HANDLER
+    // ===============================
     func send(status: UInt8, d1: UInt8, d2: UInt8) {
+
         let cmd = status & 0xF0
-        let ch = Int32(status & 0x0F)
+        let ch = Int(status & 0x0F)
 
         switch cmd {
-        case 0xB0:
-            if d1 == 0 { bankMSB[Int(ch)] = Int(d2) }
-            if d1 == 32 { bankLSB[Int(ch)] = Int(d2) }
-            fluid_synth_cc(synth, ch, Int32(d1), Int32(d2))
-        case 0xC0:
-            let bank = (bankMSB[Int(ch)] << 7) | bankLSB[Int(ch)]
-            fluid_synth_bank_select(synth, ch, Int32(bank))
-            fluid_synth_program_change(synth, ch, Int32(d1))
-        case 0x90:
+
+        case 0x80: // Note Off
+            fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
+
+        case 0x90: // Note On
             d2 == 0
-                ? fluid_synth_noteoff(synth, ch, Int32(d1))
-                : fluid_synth_noteon(synth, ch, Int32(d1), Int32(d2))
-        case 0x80:
-            fluid_synth_noteoff(synth, ch, Int32(d1))
-        case 0xE0:
+                ? fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
+                : fluid_synth_noteon(synth, Int32(ch), Int32(d1), Int32(d2))
+
+        case 0xB0: // Control Change
+            handleCC(ch: ch, cc: Int(d1), value: Int(d2))
+
+        case 0xC0: // Program Change
+            program[ch] = Int(d1)
+            applyBankAndProgram(ch)
+
+        case 0xE0: // Pitch Bend
             let bend = Int32(d1) | (Int32(d2) << 7)
-            fluid_synth_pitch_bend(synth, ch, bend)
+            fluid_synth_pitch_bend(synth, Int32(ch), bend)
+
         default:
             break
         }
+    }
+
+    // ===============================
+    // MARK: CC / RPN HANDLING
+    // ===============================
+    private func handleCC(ch: Int, cc: Int, value: Int) {
+
+        switch cc {
+
+        case 0: bankMSB[ch] = value; applyBankAndProgram(ch)
+        case 32: bankLSB[ch] = value; applyBankAndProgram(ch)
+
+        case 7, 10, 11:
+            fluid_synth_cc(synth, Int32(ch), Int32(cc), Int32(value))
+            if cc == 11 { expression[ch] = value }
+
+        case 64: // Sustain
+            sustain[ch] = value >= 64
+            fluid_synth_cc(synth, Int32(ch), 64, Int32(value))
+
+        case 101: rpnMSB[ch] = value
+        case 100: rpnLSB[ch] = value
+
+        case 6: // Data Entry MSB
+            if rpnMSB[ch] == 0 && rpnLSB[ch] == 0 {
+                pitchBendRange[ch] = value
+                fluid_synth_pitch_wheel_sens(
+                    synth,
+                    Int32(ch),
+                    Int32(value)
+                )
+            }
+
+        case 121: // Reset All Controllers
+            fluid_synth_cc(synth, Int32(ch), 121, 0)
+            expression[ch] = 127
+            sustain[ch] = false
+
+        default:
+            fluid_synth_cc(synth, Int32(ch), Int32(cc), Int32(value))
+        }
+    }
+
+    // ===============================
+    // MARK: BANK + PROGRAM APPLY
+    // ===============================
+    private func applyBankAndProgram(_ ch: Int) {
+
+        let bank: Int32 = (ch == 9)
+            ? 128
+            : Int32((bankMSB[ch] << 7) | bankLSB[ch])
+
+        fluid_synth_bank_select(synth, Int32(ch), bank)
+        fluid_synth_program_change(synth, Int32(ch), Int32(program[ch]))
     }
 
     func allNotesOff() {
@@ -93,6 +180,7 @@ final class FluidSynthEngine {
         fluid_synth_system_reset(synth)
     }
 }
+
 
 import Foundation
 import CoreMIDI
@@ -121,10 +209,30 @@ final class MIDIFluidPlayer: ObservableObject {
      var isSeeking = false
 
     init() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioInterruption),
+            name: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance()
+        )
+
         MIDIClientCreate("FluidClient" as CFString, nil, nil, &midiClient)
 
         MIDIDestinationCreateWithProtocol(midiClient, "FluidDest" as CFString, MIDIProtocolID._1_0, &endpoint) { [weak self] eventList, _ in
             self?.handle(eventList)
+        }
+    }
+    @objc private func handleAudioInterruption(_ notification: Notification) {
+        guard
+            let userInfo = notification.userInfo,
+            let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+            let type = AVAudioSession.InterruptionType(rawValue: typeValue)
+        else { return }
+
+        if type == .began {
+            pause()
+        } else {
+            try? AVAudioSession.sharedInstance().setActive(true)
         }
     }
 
@@ -233,6 +341,13 @@ final class MIDIFluidPlayer: ObservableObject {
     }
 
     func play() {
+        do {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default)
+                try session.setActive(true)
+            } catch {
+                print("Audio session activation failed:", error)
+            }
         guard let player = player else { return }
         MusicPlayerStart(player)
         isPlaying = true

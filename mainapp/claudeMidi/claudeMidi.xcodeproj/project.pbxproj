@@ -13,16 +13,31 @@
 		420D27D82F025536001084E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27D72F025536001084E9 /* Assets.xcassets */; };
 		420D27DB2F025536001084E9 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27DA2F025536001084E9 /* Preview Assets.xcassets */; };
 		420D27E22F02586D001084E9 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27E12F02586D001084E9 /* Test.swift */; };
-		420E60462F0E9A5E0020404C /* FluidSynth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; };
 		4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB132F03A24B00EF59DD /* AuGraph.swift */; };
 		4213DB282F04072500EF59DD /* AudioClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB272F04072500EF59DD /* AudioClass.swift */; };
 		422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728A2F078A2E00EE9B2B /* TrackRow.swift */; };
 		422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */; };
 		4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */; };
 		428E97942F02638B0069D44E /* PianoCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428E97932F02638B0069D44E /* PianoCopy.swift */; };
+		42BD3E2E2F114B7D00E20685 /* FluidSynth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; };
+		42BD3E2F2F114B7D00E20685 /* FluidSynth.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		42FF6F5F2F051371006F90D0 /* ChatGpt.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42FF6F5E2F051371006F90D0 /* ChatGpt.swift */; };
 		42FF6F612F051798006F90D0 /* sample.mid in Resources */ = {isa = PBXBuildFile; fileRef = 42FF6F602F051798006F90D0 /* sample.mid */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		42BD3E302F114B7D00E20685 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				42BD3E2F2F114B7D00E20685 /* FluidSynth.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		420A8C132F065D41006D9A95 /* FinalTryClaude.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalTryClaude.swift; sourceTree = "<group>"; };
@@ -50,7 +65,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				420E60462F0E9A5E0020404C /* FluidSynth.xcframework in Frameworks */,
+				42BD3E2E2F114B7D00E20685 /* FluidSynth.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -123,6 +138,7 @@
 				420D27CC2F025533001084E9 /* Sources */,
 				420D27CD2F025533001084E9 /* Frameworks */,
 				420D27CE2F025533001084E9 /* Resources */,
+				42BD3E302F114B7D00E20685 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
