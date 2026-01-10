@@ -42,7 +42,6 @@ final class FluidSynthEngine {
         fluid_settings_setint(settings, "synth.threadsafe-api", 0)
         fluid_settings_setint(settings, "synth.midi-channels", 16)
         fluid_settings_setnum(settings, "synth.sample-rate", sampleRate)
-        fluid_settings_setint(settings, "synth.polyphony", 256)
         fluid_settings_setnum(settings, "synth.gain", 1.0)
         fluid_settings_setint(settings, "synth.interpolation", 4)
 
