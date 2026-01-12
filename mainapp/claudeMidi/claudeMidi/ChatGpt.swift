@@ -5,10 +5,10 @@ final class MIDIChannelState: ObservableObject, Identifiable {
     let id = UUID()
     let channel: Int            // 0–15
     let name: String            // "Ch 10 – Drums"
-
+    
     @Published var muted = false
     @Published var solo = false
-
+    
     init(channel: Int, name: String) {
         self.channel = channel
         self.name = name
@@ -19,57 +19,57 @@ final class MIDIChannelState: ObservableObject, Identifiable {
 import Foundation
 
 final class FluidSynthEngine {
-
+    
     private var settings: OpaquePointer!
     private var synth: OpaquePointer!
     private var audioDriver: OpaquePointer!
-
+    
     // Bank + program state
     private var bankMSB = Array(repeating: 0, count: 16)
     private var bankLSB = Array(repeating: 0, count: 16)
     private var program = Array(repeating: 0, count: 16)
-
+    
     // Controller state
     private var expression = Array(repeating: 127, count: 16)
     private var sustain = Array(repeating: false, count: 16)
-
+    
     // RPN state (for pitch bend range)
     private var rpnMSB = Array(repeating: 127, count: 16)
     private var rpnLSB = Array(repeating: 127, count: 16)
     private var pitchBendRange = Array(repeating: 2, count: 16) // semitones
-
+    
     init(sampleRate: Double = 44100) {
         settings = new_fluid_settings()
-
+        
         fluid_settings_setstr(settings, "audio.driver", "coreaudio")
         fluid_settings_setint(settings, "synth.threadsafe-api", 0)
         fluid_settings_setint(settings, "synth.midi-channels", 16)
         fluid_settings_setnum(settings, "synth.sample-rate", sampleRate)
         fluid_settings_setnum(settings, "synth.gain", 1.0)
         fluid_settings_setint(settings, "synth.polyphony", 256)
-
+        
         fluid_settings_setint(settings, "synth.reverb.active", 1)
         fluid_settings_setnum(settings, "synth.reverb.room-size", 0.7)
         fluid_settings_setnum(settings, "synth.reverb.damp", 0.5)
         fluid_settings_setnum(settings, "synth.reverb.level", 0.3)
-
+        
         fluid_settings_setint(settings, "synth.chorus.active", 1)
         fluid_settings_setnum(settings, "synth.chorus.level", 2.0)
         fluid_settings_setnum(settings, "synth.chorus.depth", 6.0)
-
+        
         synth = new_fluid_synth(settings)
         audioDriver = new_fluid_audio_driver(settings, synth)
     }
-
+    
     deinit {
         delete_fluid_audio_driver(audioDriver)
         delete_fluid_synth(synth)
         delete_fluid_settings(settings)
     }
-
+    
     func loadSoundFont(_ url: URL) {
         fluid_synth_sfload(synth, url.path, 1)
-
+        
         for ch in 0..<16 {
             bankMSB[ch] = 0
             bankLSB[ch] = 0
@@ -78,67 +78,67 @@ final class FluidSynthEngine {
             sustain[ch] = false
             pitchBendRange[ch] = 2
         }
-
+        
         // GM drum channel
         fluid_synth_bank_select(synth, 9, 128)
         fluid_synth_program_change(synth, 9, 0)
     }
-
+    
     // ===============================
     // MARK: MIDI EVENT HANDLER
     // ===============================
     func send(status: UInt8, d1: UInt8, d2: UInt8) {
-
+        
         let cmd = status & 0xF0
         let ch = Int(status & 0x0F)
-
+        
         switch cmd {
-
+            
         case 0x80: // Note Off
             fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
-
+            
         case 0x90: // Note On
             d2 == 0
-                ? fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
-                : fluid_synth_noteon(synth, Int32(ch), Int32(d1), Int32(d2))
-
+            ? fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
+            : fluid_synth_noteon(synth, Int32(ch), Int32(d1), Int32(d2))
+            
         case 0xB0: // Control Change
             handleCC(ch: ch, cc: Int(d1), value: Int(d2))
-
+            
         case 0xC0: // Program Change
             program[ch] = Int(d1)
             applyBankAndProgram(ch)
-
+            
         case 0xE0: // Pitch Bend
             let bend = Int32(d1) | (Int32(d2) << 7)
             fluid_synth_pitch_bend(synth, Int32(ch), bend)
-
+            
         default:
             break
         }
     }
-
+    
     // ===============================
     // MARK: CC / RPN HANDLING
     // ===============================
     private func handleCC(ch: Int, cc: Int, value: Int) {
-
+        
         switch cc {
-
+            
         case 0: bankMSB[ch] = value; applyBankAndProgram(ch)
         case 32: bankLSB[ch] = value; applyBankAndProgram(ch)
-
+            
         case 7, 10, 11:
             fluid_synth_cc(synth, Int32(ch), Int32(cc), Int32(value))
             if cc == 11 { expression[ch] = value }
-
+            
         case 64: // Sustain
             sustain[ch] = value >= 64
             fluid_synth_cc(synth, Int32(ch), 64, Int32(value))
-
+            
         case 101: rpnMSB[ch] = value
         case 100: rpnLSB[ch] = value
-
+            
         case 6: // Data Entry MSB
             if rpnMSB[ch] == 0 && rpnLSB[ch] == 0 {
                 pitchBendRange[ch] = value
@@ -148,34 +148,34 @@ final class FluidSynthEngine {
                     Int32(value)
                 )
             }
-
+            
         case 121: // Reset All Controllers
             fluid_synth_cc(synth, Int32(ch), 121, 0)
             expression[ch] = 127
             sustain[ch] = false
-
+            
         default:
             fluid_synth_cc(synth, Int32(ch), Int32(cc), Int32(value))
         }
     }
-
+    
     // ===============================
     // MARK: BANK + PROGRAM APPLY
     // ===============================
     private func applyBankAndProgram(_ ch: Int) {
         let bank: Int32 = (ch == 9)
-            ? 128
-            : Int32((bankMSB[ch] << 7) | bankLSB[ch])
+        ? 128
+        : Int32((bankMSB[ch] << 7) | bankLSB[ch])
         fluid_synth_bank_select(synth, Int32(ch), bank)
         fluid_synth_program_change(synth, Int32(ch), Int32(program[ch]))
     }
-
+    
     func allNotesOff() {
         for ch in 0..<16 {
             fluid_synth_all_notes_off(synth, Int32(ch))
         }
     }
-
+    
     func systemReset() {
         fluid_synth_system_reset(synth)
     }
@@ -188,10 +188,10 @@ import AudioToolbox
 
 @available(iOS 16.0, *)
 final class MIDIFluidPlayer: ObservableObject {
-
+    
     private var midiClient = MIDIClientRef()
     private var endpoint = MIDIEndpointRef()
-
+    
     private var sequence: MusicSequence?
     private var player: MusicPlayer?
     private var timer: Timer?
@@ -199,7 +199,7 @@ final class MIDIFluidPlayer: ObservableObject {
     private var usedChannels = Set<Int>()
     private var mutedChannels = Set<Int>()
     private var soloChannels = Set<Int>()
-
+    
     let synth = FluidSynthEngine()
     @Published var currentTime: TimeInterval = 0
     @Published var totalDuration: TimeInterval = 0
@@ -207,10 +207,11 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var tempo: Double = 120.0 // BPM
     @Published var midiFileName: String = "No MIDI file loaded"
     @Published var soundFontFileName: String = "No SoundFont loaded"
+    private var wasPlayingBeforeSeek = false
 
     private var trackMap: [MusicTrack: Int] = [:]
-     var isSeeking = false
-
+    var isSeeking = false
+    
     init() {
         NotificationCenter.default.addObserver(
             self,
@@ -218,9 +219,9 @@ final class MIDIFluidPlayer: ObservableObject {
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
-
+        
         MIDIClientCreate("FluidClient" as CFString, nil, nil, &midiClient)
-
+        
         MIDIDestinationCreateWithProtocol(midiClient, "FluidDest" as CFString, MIDIProtocolID._1_0, &endpoint) { [weak self] eventList, _ in
             self?.handle(eventList)
         }
@@ -231,20 +232,20 @@ final class MIDIFluidPlayer: ObservableObject {
             let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
             let type = AVAudioSession.InterruptionType(rawValue: typeValue)
         else { return }
-
+        
         if type == .began {
             pause()
         } else {
             try? AVAudioSession.sharedInstance().setActive(true)
         }
     }
-
+    
     func loadSoundFont(_ url: URL) {
         synth.loadSoundFont(url)
         synth.systemReset()
         soundFontFileName = url.lastPathComponent
     }
-
+    
     func loadMIDI(_ url: URL) {
         NewMusicSequence(&sequence)
         MusicSequenceFileLoad(sequence!, url as CFURL, .midiType, MusicSequenceLoadFlags())
@@ -253,9 +254,9 @@ final class MIDIFluidPlayer: ObservableObject {
         midiFileName = url.lastPathComponent
         
         detectUsedChannels()
-           buildChannelStates()
-           calculateDuration()
-
+        buildChannelStates()
+        calculateDuration()
+        
         // Calculate total duration
         calculateDuration()
         
@@ -266,39 +267,39 @@ final class MIDIFluidPlayer: ObservableObject {
     
     private func detectUsedChannels() {
         guard let seq = sequence else { return }
-
+        
         usedChannels.removeAll()
-
+        
         var trackCount: UInt32 = 0
         MusicSequenceGetTrackCount(seq, &trackCount)
-
+        
         for i in 0..<trackCount {
             var track: MusicTrack?
             MusicSequenceGetIndTrack(seq, i, &track)
             guard let track = track else { continue }
-
+            
             var iterator: MusicEventIterator?
             NewMusicEventIterator(track, &iterator)
             guard let it = iterator else { continue }
             defer { DisposeMusicEventIterator(it) }
-
+            
             var hasEvent = DarwinBoolean(false)
             MusicEventIteratorHasCurrentEvent(it, &hasEvent)
-
+            
             while hasEvent.boolValue {
                 var time = MusicTimeStamp()
                 var type = MusicEventType()
                 var data: UnsafeRawPointer?
                 var size: UInt32 = 0
-
+                
                 MusicEventIteratorGetEventInfo(it, &time, &type, &data, &size)
-
+                
                 if type == kMusicEventType_MIDIChannelMessage {
                     let msg = data!.assumingMemoryBound(to: MIDIChannelMessage.self).pointee
                     let channel = Int(msg.status & 0x0F)
                     usedChannels.insert(channel)
                 }
-
+                
                 MusicEventIteratorNextEvent(it)
                 MusicEventIteratorHasCurrentEvent(it, &hasEvent)
             }
@@ -308,9 +309,9 @@ final class MIDIFluidPlayer: ObservableObject {
         channels.removeAll()
         mutedChannels.removeAll()
         soloChannels.removeAll()
-
+        
         let sorted = usedChannels.sorted()
-
+        
         for ch in sorted {
             let name: String
             if ch == 9 {
@@ -321,30 +322,30 @@ final class MIDIFluidPlayer: ObservableObject {
             channels.append(MIDIChannelState(channel: ch, name: name))
         }
     }
-
-
-//    private func extractTracks() {
-//        guard let seq = sequence else { return }
-//
-//        var trackCount: UInt32 = 0
-//        MusicSequenceGetTrackCount(seq, &trackCount)
-//
-//        tracks.removeAll()
-//        trackMap.removeAll()
-//
-//        for i in 0..<trackCount {
-//            var track: MusicTrack?
-//            MusicSequenceGetIndTrack(seq, UInt32(i), &track)
-//
-//            guard let track = track else { continue }
-//
-//            let trackName = getTrackName(track: track, index: Int(i))
-//            let trackState = MIDITrackState(trackIndex: Int(i), trackName: trackName)
-//            tracks.append(trackState)
-//            trackMap[track] = Int(i)
-//        }
-//    }
-
+    
+    
+    //    private func extractTracks() {
+    //        guard let seq = sequence else { return }
+    //
+    //        var trackCount: UInt32 = 0
+    //        MusicSequenceGetTrackCount(seq, &trackCount)
+    //
+    //        tracks.removeAll()
+    //        trackMap.removeAll()
+    //
+    //        for i in 0..<trackCount {
+    //            var track: MusicTrack?
+    //            MusicSequenceGetIndTrack(seq, UInt32(i), &track)
+    //
+    //            guard let track = track else { continue }
+    //
+    //            let trackName = getTrackName(track: track, index: Int(i))
+    //            let trackState = MIDITrackState(trackIndex: Int(i), trackName: trackName)
+    //            tracks.append(trackState)
+    //            trackMap[track] = Int(i)
+    //        }
+    //    }
+    
     private func getTrackName(track: MusicTrack, index: Int) -> String {
         var iterator: MusicEventIterator?
         NewMusicEventIterator(track, &iterator)
@@ -379,7 +380,7 @@ final class MIDIFluidPlayer: ObservableObject {
         
         return "Track \(index + 1)"
     }
-
+    
     private func calculateDuration() {
         guard let seq = sequence else { return }
         
@@ -402,28 +403,28 @@ final class MIDIFluidPlayer: ObservableObject {
         // Convert music time (beats) to seconds using tempo
         MusicSequenceGetSecondsForBeats(seq, length, &totalDuration)
     }
-
+    
     func play() {
         do {
-                let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .default)
-                try session.setActive(true)
-            } catch {
-                print("Audio session activation failed:", error)
-            }
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default)
+            try session.setActive(true)
+        } catch {
+            print("Audio session activation failed:", error)
+        }
         guard let player = player else { return }
         MusicPlayerStart(player)
         isPlaying = true
         startTimer()
     }
-
+    
     func pause() {
         guard let player = player else { return }
         MusicPlayerStop(player)
         isPlaying = false
         stopTimer()
     }
-
+    
     func stop() {
         guard let player = player else { return }
         MusicPlayerStop(player)
@@ -432,36 +433,50 @@ final class MIDIFluidPlayer: ObservableObject {
         isPlaying = false
         stopTimer()
     }
-
+    
     func seek(to time: TimeInterval) {
         guard let player = player, let seq = sequence else { return }
-        
+
+        // Remember state
+        wasPlayingBeforeSeek = isPlaying
+
         isSeeking = true
-        
-        // Convert seconds to beats
+
+        // Stop current sound safely
+        synth.allNotesOff()
+
+        // Move time
         var beats: MusicTimeStamp = 0
         MusicSequenceGetBeatsForSeconds(seq, time, &beats)
         MusicPlayerSetTime(player, beats)
+
         currentTime = time
-        
-        // Small delay to prevent flickering
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.isSeeking = false
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            self.isSeeking = false
+
+            // ✅ Resume only if it was playing
+            if self.wasPlayingBeforeSeek {
+                MusicPlayerStart(player)
+            }
         }
     }
 
+    
+    
+    
     private func startTimer() {
         stopTimer()
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
             self?.updateCurrentTime()
         }
     }
-
+    
     private func stopTimer() {
         timer?.invalidate()
         timer = nil
     }
-
+    
     private func updateCurrentTime() {
         guard let player = player, let seq = sequence, !isSeeking else { return }
         
@@ -477,14 +492,21 @@ final class MIDIFluidPlayer: ObservableObject {
             stop()
         }
     }
+    private func areAllUsedChannelsMuted() -> Bool {
+        return usedChannels.allSatisfy { mutedChannels.contains($0) }
+    }
+    
     func setChannelMute(_ channel: Int, muted: Bool) {
         if muted {
             mutedChannels.insert(channel)
         } else {
             mutedChannels.remove(channel)
         }
+        if areAllUsedChannelsMuted() {
+            synth.allNotesOff()
+        }
     }
-
+    
     func setChannelSolo(_ channel: Int, solo: Bool) {
         if solo {
             soloChannels.insert(channel)
@@ -492,31 +514,31 @@ final class MIDIFluidPlayer: ObservableObject {
             soloChannels.remove(channel)
         }
     }
-
-//    func setTrackMute(_ trackIndex: Int, muted: Bool) {
-//        guard let seq = sequence, trackIndex < tracks.count else { return }
-//
-//        var track: MusicTrack?
-//        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
-//
-//        if let track = track {
-//            var muteValue: UInt32 = muted ? 1 : 0
-//            MusicTrackSetProperty(track, kSequenceTrackProperty_MuteStatus, &muteValue, UInt32(MemoryLayout<UInt32>.size))
-//        }
-//    }
-//
-//    func setTrackSolo(_ trackIndex: Int, solo: Bool) {
-//        guard let seq = sequence, trackIndex < tracks.count else { return }
-//
-//        var track: MusicTrack?
-//        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
-//
-//        if let track = track {
-//            var soloValue: UInt32 = solo ? 1 : 0
-//            MusicTrackSetProperty(track, kSequenceTrackProperty_SoloStatus, &soloValue, UInt32(MemoryLayout<UInt32>.size))
-//        }
-//    }
-
+    
+    //    func setTrackMute(_ trackIndex: Int, muted: Bool) {
+    //        guard let seq = sequence, trackIndex < tracks.count else { return }
+    //
+    //        var track: MusicTrack?
+    //        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
+    //
+    //        if let track = track {
+    //            var muteValue: UInt32 = muted ? 1 : 0
+    //            MusicTrackSetProperty(track, kSequenceTrackProperty_MuteStatus, &muteValue, UInt32(MemoryLayout<UInt32>.size))
+    //        }
+    //    }
+    //
+    //    func setTrackSolo(_ trackIndex: Int, solo: Bool) {
+    //        guard let seq = sequence, trackIndex < tracks.count else { return }
+    //
+    //        var track: MusicTrack?
+    //        MusicSequenceGetIndTrack(seq, UInt32(trackIndex), &track)
+    //
+    //        if let track = track {
+    //            var soloValue: UInt32 = solo ? 1 : 0
+    //            MusicTrackSetProperty(track, kSequenceTrackProperty_SoloStatus, &soloValue, UInt32(MemoryLayout<UInt32>.size))
+    //        }
+    //    }
+    
     func setTempo(_ bpm: Double) {
         guard let player = player else { return }
         
@@ -524,43 +546,51 @@ final class MIDIFluidPlayer: ObservableObject {
         let rate = bpm / 120.0 // 120 is the default tempo
         MusicPlayerSetPlayRateScalar(player, rate)
     }
-
+    
     @available(iOS 16.0, *)
     private func handle(_ list: UnsafePointer<MIDIEventList>) {
+        
+        // 🚫 Do NOT process MIDI while seeking
+        if isSeeking { return }
+        
         var packet = list.pointee.packet
-
+        
         for _ in 0..<list.pointee.numPackets {
+            
             let wordCount = Int(packet.wordCount)
-
+            
+            // 🛡 Safety guard
+            if wordCount <= 0 || wordCount > 64 {
+                packet = MIDIEventPacketNext(&packet).pointee
+                continue
+            }
+            
             withUnsafePointer(to: &packet.words) {
                 $0.withMemoryRebound(to: UInt32.self, capacity: wordCount) { wordsPtr in
                     for i in 0..<wordCount {
                         let word = wordsPtr[i]
-
+                        
                         let status = UInt8((word >> 16) & 0xFF)
                         let data1  = UInt8((word >> 8) & 0xFF)
                         let data2  = UInt8(word & 0xFF)
-
+                        
                         let channel = Int(status & 0x0F)
-
-                        // SOLO logic
+                        
                         if !soloChannels.isEmpty {
-                            if !soloChannels.contains(channel) {
-                                continue
-                            }
+                            if !soloChannels.contains(channel) { continue }
                         } else if mutedChannels.contains(channel) {
                             continue
                         }
-
+                        
                         synth.send(status: status, d1: data1, d2: data2)
-
                     }
                 }
             }
-
+            
             packet = MIDIEventPacketNext(&packet).pointee
         }
     }
+    
 }
 
 import SwiftUI
@@ -570,17 +600,17 @@ import UniformTypeIdentifiers
 struct DocumentPicker: UIViewControllerRepresentable {
     let types: [UTType]
     let onPick: (URL) -> Void
-
+    
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: false)
         picker.delegate = context.coordinator
         return picker
     }
-
+    
     func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
-
+    
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
-
+    
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
         let onPick: (URL) -> Void
         init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
@@ -595,16 +625,18 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct ContentView: View {
-
+    
     @StateObject private var player = MIDIFluidPlayer()
     @State private var showSFPicker = false
     @State private var showMIDIPicker = false
     @State private var tempoValue: Double = 120.0
-
+    @State private var sliderTime: Double = 0
+    @State private var isDraggingSlider = false
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 16) {
-
+                
                 // File names display
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
@@ -629,10 +661,10 @@ struct ContentView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal)
-
+                
                 Button("Load SoundFont") { showSFPicker = true }
                 Button("Load MIDI File") { showMIDIPicker = true }
-
+                
                 HStack(spacing: 12) {
                     Button(player.isPlaying ? "Pause" : "Play") {
                         if player.isPlaying {
@@ -648,7 +680,7 @@ struct ContentView: View {
                     }
                     .frame(width: 80)
                 }
-
+                
                 // Playback controls
                 VStack(spacing: 8) {
                     HStack {
@@ -659,30 +691,27 @@ struct ContentView: View {
                             .font(.system(.caption, design: .monospaced))
                     }
                     
-                    GeometryReader { geometry in
-                        Slider(
-                            value: Binding(
-                                get: { player.currentTime },
-                                set: { newValue in
-                                    player.seek(to: newValue)
-                                }
-                            ),
-                            in: 0...max(player.totalDuration, 0.1),
-                            onEditingChanged: { editing in
-                                if editing {
-                                    player.isSeeking = true
-                                } else {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                                        player.isSeeking = false
-                                    }
-                                }
+                    Slider(
+                        value: $sliderTime,
+                        in: 0...max(player.totalDuration, 0.1),
+                        onEditingChanged: { editing in
+                            isDraggingSlider = editing
+                            
+                            if !editing {
+                                // ✅ Seek ONLY when user releases finger
+                                player.seek(to: sliderTime)
                             }
-                        )
-                    }
+                        }
+                    )
                     .frame(height: 40)
                 }
                 .padding(.horizontal)
-
+                .onChange(of: player.currentTime) { newTime in
+                    if !isDraggingSlider {
+                        sliderTime = newTime
+                    }
+                }
+                
                 // Tempo control
                 VStack(spacing: 8) {
                     HStack {
@@ -701,15 +730,15 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal)
-
+                
                 List {
                     ForEach(player.channels) { ch in
                         HStack {
                             Text(ch.name)
                                 .lineLimit(1)
-
+                            
                             Spacer()
-
+                            
                             Toggle("Mute", isOn: Binding(
                                 get: { ch.muted },
                                 set: { value in
@@ -720,7 +749,7 @@ struct ContentView: View {
                             .labelsHidden()
                             .toggleStyle(.button)
                             .tint(ch.muted ? .red : .gray)
-
+                            
                             Toggle("Solo", isOn: Binding(
                                 get: { ch.solo },
                                 set: { value in
@@ -734,10 +763,10 @@ struct ContentView: View {
                         }
                     }
                 }
-
+                
             }
             .padding()
-            .navigationTitle("Fluid MIDI Player")
+            .navigationTitle("Fluid MIDI Player3.0")
         }
         .sheet(isPresented: $showSFPicker) {
             DocumentPicker(types: [.data]) { url in
@@ -756,7 +785,7 @@ struct ContentView: View {
             }
         }
     }
-
+    
     private func formatTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
         let seconds = Int(time) % 60
