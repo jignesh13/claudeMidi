@@ -661,138 +661,304 @@ struct ContentView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 16) {
+            VStack(spacing: 0) {
                 
-                // File names display
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("SoundFont:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(player.soundFontFileName)
-                            .font(.caption)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                    
-                    HStack {
-                        Text("MIDI File:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(player.midiFileName)
-                            .font(.caption)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal)
-                
-                Button("Load SoundFont") { showSFPicker = true }
-                Button("Load MIDI File") { showMIDIPicker = true }
-                
-                HStack(spacing: 12) {
-                    Button(player.isPlaying ? "Pause" : "Play") {
-                        if player.isPlaying {
-                            player.pause()
-                        } else {
-                            player.play()
+                // Header Section with File Info
+                VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "music.note.list")
+                                .foregroundColor(.blue)
+                                .frame(width: 20)
+                            Text("SoundFont:")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text(player.soundFontFileName)
+                                .font(.system(size: 13))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                        
+                        HStack {
+                            Image(systemName: "doc.text")
+                                .foregroundColor(.purple)
+                                .frame(width: 20)
+                            Text("MIDI File:")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.secondary)
+                            Text(player.midiFileName)
+                                .font(.system(size: 13))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                         }
                     }
-                    .frame(width: 80)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(uiColor: .systemGray6))
+                    .cornerRadius(10)
                     
-                    Button("Stop") {
-                        player.stop()
+                    // File Load Buttons
+                    HStack(spacing: 12) {
+                        Button(action: { showSFPicker = true }) {
+                            Label("Load SoundFont", systemImage: "square.and.arrow.down")
+                                .font(.system(size: 14, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
+                        
+                        Button(action: { showMIDIPicker = true }) {
+                            Label("Load MIDI", systemImage: "music.note")
+                                .font(.system(size: 14, weight: .medium))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(Color.purple)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                        }
                     }
-                    .frame(width: 80)
                 }
+                .padding(16)
+                .background(Color(uiColor: .systemBackground))
                 
-                // Playback controls
-                VStack(spacing: 8) {
-                    HStack {
-                        Text(formatTime(isDraggingSlider ? sliderTime : player.currentTime))
-                               .font(.system(.caption, design: .monospaced))
-                        Spacer()
-                        Text(formatTime(player.totalDuration))
-                            .font(.system(.caption, design: .monospaced))
-                    }
-                    
-                    Slider(
-                        value: $sliderTime,
-                        in: 0...max(player.totalDuration, 0.1),
-                        onEditingChanged: { editing in
-                            isDraggingSlider = editing
-                            
-                            if !editing {
-                                // ✅ Seek ONLY when user releases finger
-                                player.seek(to: sliderTime)
+                Divider()
+                
+                // Transport Controls
+                VStack(spacing: 16) {
+                    HStack(spacing: 16) {
+                        Button(action: {
+                            if player.isPlaying {
+                                player.pause()
+                            } else {
+                                player.play()
                             }
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: player.isPlaying ? "pause.fill" : "play.fill")
+                                    .font(.system(size: 16))
+                                Text(player.isPlaying ? "Pause" : "Play")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .frame(width: 100, height: 40)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.green.opacity(0.8), Color.green],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .shadow(color: Color.green.opacity(0.3), radius: 4, y: 2)
                         }
-                    )
-                    .frame(height: 40)
+                        
+                        Button(action: { player.stop() }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "stop.fill")
+                                    .font(.system(size: 16))
+                                Text("Stop")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .frame(width: 100, height: 40)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.red.opacity(0.8), Color.red],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                            .shadow(color: Color.red.opacity(0.3), radius: 4, y: 2)
+                        }
+                    }
+                    
+                    // Time Display and Slider
+                    VStack(spacing: 10) {
+                        HStack {
+                            Text(formatTime(isDraggingSlider ? sliderTime : player.currentTime))
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.primary)
+                                .frame(width: 60, alignment: .leading)
+                            
+                            Spacer()
+                            
+                            Text(formatTime(player.totalDuration))
+                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .frame(width: 60, alignment: .trailing)
+                        }
+                        
+                        Slider(
+                            value: $sliderTime,
+                            in: 0...max(player.totalDuration, 0.1),
+                            onEditingChanged: { editing in
+                                isDraggingSlider = editing
+                                
+                                if !editing {
+                                    player.seek(to: sliderTime)
+                                }
+                            }
+                        )
+                        .accentColor(.blue)
+                        .frame(height: 44)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(Color(uiColor: .systemGray6))
+                    .cornerRadius(10)
                 }
-                .padding(.horizontal)
+                .padding(16)
                 .onChange(of: player.currentTime) { newTime in
                     if !isDraggingSlider {
                         sliderTime = newTime
                     }
                 }
                 
-                // Tempo control
-                VStack(spacing: 8) {
+                Divider()
+                
+                // Tempo Control
+                VStack(spacing: 12) {
                     HStack {
+                        Image(systemName: "metronome")
+                            .foregroundColor(.orange)
                         Text("Tempo: \(Int(tempoValue)) BPM")
-                            .font(.caption)
+                            .font(.system(size: 15, weight: .semibold))
                         Spacer()
-                        Button("Reset") {
+                        Button(action: {
                             tempoValue = 120.0
                             player.setTempo(tempoValue)
+                        }) {
+                            Text("Reset")
+                                .font(.system(size: 13, weight: .medium))
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(Color.orange.opacity(0.2))
+                                .foregroundColor(.orange)
+                                .cornerRadius(6)
                         }
-                        .font(.caption)
                     }
                     
                     Slider(value: $tempoValue, in: 40...240, step: 1) { _ in
                         player.setTempo(tempoValue)
                     }
+                    .accentColor(.orange)
                 }
-                .padding(.horizontal)
+                .padding(16)
+                .background(Color(uiColor: .systemGray6))
                 
+                Divider()
+                
+                // Channel Mixer Header
+                HStack {
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundColor(.blue)
+                    Text("Channel Mixer")
+                        .font(.system(size: 16, weight: .bold))
+                    Spacer()
+                    Button(action: {
+                        for ch in player.channels {
+                            if ch.muted {
+                                ch.muted = false
+                                player.setChannelMute(ch.channel, muted: false)
+                            }
+                            if ch.solo {
+                                ch.solo = false
+                                player.setChannelSolo(ch.channel, solo: false)
+                            }
+                        }
+                    }) {
+                        Text("Reset")
+                            .font(.system(size: 13, weight: .medium))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.blue.opacity(0.2))
+                            .foregroundColor(.blue)
+                            .cornerRadius(6)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color(uiColor: .systemGray6))
+                
+                Divider()
+                
+                // Channels List
                 List {
                     ForEach(player.channels) { ch in
-                        HStack {
+                        HStack(spacing: 12) {
+                            // Channel indicator
+                            Circle()
+                                .fill(ch.muted ? Color.red : (ch.solo ? Color.green : Color.blue))
+                                .frame(width: 8, height: 8)
+                            
                             Text(ch.name)
+                                .font(.system(size: 15, weight: .medium))
                                 .lineLimit(1)
                             
                             Spacer()
                             
-                            Toggle("Mute", isOn: Binding(
-                                get: { ch.muted },
-                                set: { value in
-                                    ch.muted = value
-                                    player.setChannelMute(ch.channel, muted: value)
+                            HStack(spacing: 8) {
+                                // Mute Button
+                                Button(action: {
+                                    ch.muted.toggle()
+                                    player.setChannelMute(ch.channel, muted: ch.muted)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: ch.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                                            .font(.system(size: 13))
+                                        Text("M")
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(ch.muted ? .white : .primary)
+                                    .frame(width: 50, height: 28)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(ch.muted ? Color.red : Color.gray.opacity(0.2))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(ch.muted ? Color.red.opacity(0.5) : Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
                                 }
-                            ))
-                            .labelsHidden()
-                            .toggleStyle(.button)
-                            .tint(ch.muted ? .red : .gray)
-                            
-                            Toggle("Solo", isOn: Binding(
-                                get: { ch.solo },
-                                set: { value in
-                                    ch.solo = value
-                                    player.setChannelSolo(ch.channel, solo: value)
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                // Solo Button
+                                Button(action: {
+                                    ch.solo.toggle()
+                                    player.setChannelSolo(ch.channel, solo: ch.solo)
+                                }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: ch.solo ? "star.fill" : "star")
+                                            .font(.system(size: 13))
+                                        Text("S")
+                                            .font(.system(size: 12, weight: .semibold))
+                                    }
+                                    .foregroundColor(ch.solo ? .white : .primary)
+                                    .frame(width: 50, height: 28)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(ch.solo ? Color.green : Color.gray.opacity(0.2))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .strokeBorder(ch.solo ? Color.green.opacity(0.5) : Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
                                 }
-                            ))
-                            .labelsHidden()
-                            .toggleStyle(.button)
-                            .tint(ch.solo ? .green : .gray)
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
+                        .padding(.vertical, 4)
                     }
                 }
+                .listStyle(PlainListStyle())
                 
             }
-            .padding()
-            .navigationTitle("Fluid MIDI Player3.0")
+            .navigationTitle("Fluid MIDI Player")
+            .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showSFPicker) {
             DocumentPicker(types: [.sf2]) { url in
