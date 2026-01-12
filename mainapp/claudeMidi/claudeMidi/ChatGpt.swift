@@ -427,10 +427,10 @@ final class MIDIFluidPlayer: ObservableObject {
     
     func stop() {
         guard let player = player else { return }
+        isPlaying = false
         MusicPlayerStop(player)
         synth.allNotesOff()
         seek(to: 0)
-        isPlaying = false
         stopTimer()
     }
     
@@ -438,6 +438,7 @@ final class MIDIFluidPlayer: ObservableObject {
         guard let player = player, let seq = sequence else { return }
 
         // Remember state
+        print("seek")
         wasPlayingBeforeSeek = isPlaying
 
         isSeeking = true
@@ -454,6 +455,7 @@ final class MIDIFluidPlayer: ObservableObject {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.isSeeking = false
+            print("seekend")
 
             // ✅ Resume only if it was playing
             if self.wasPlayingBeforeSeek {
@@ -478,7 +480,7 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     private func updateCurrentTime() {
-        guard let player = player, let seq = sequence, !isSeeking else { return }
+        guard let player = player, let seq = sequence else { return }
         
         var time: MusicTimeStamp = 0
         MusicPlayerGetTime(player, &time)
@@ -487,8 +489,9 @@ final class MIDIFluidPlayer: ObservableObject {
         var seconds: TimeInterval = 0
         MusicSequenceGetSecondsForBeats(seq, time, &seconds)
         currentTime = seconds
-        
-        if time >= totalDuration {
+      
+
+        if currentTime >= totalDuration {
             stop()
         }
     }
@@ -498,22 +501,44 @@ final class MIDIFluidPlayer: ObservableObject {
     
     func setChannelMute(_ channel: Int, muted: Bool) {
         if muted {
+            // Mute the channel
             mutedChannels.insert(channel)
+
+            // ⭐ Rule: mute cancels solo
+            soloChannels.remove(channel)
+
+            // UI sync
+            if let ch = channels.first(where: { $0.channel == channel }) {
+                ch.solo = false
+            }
         } else {
             mutedChannels.remove(channel)
         }
+
+        // ⭐ Safety: silence synth if everything is muted
         if areAllUsedChannelsMuted() {
             synth.allNotesOff()
         }
     }
+
     
     func setChannelSolo(_ channel: Int, solo: Bool) {
         if solo {
+            // Solo the channel
             soloChannels.insert(channel)
+
+            // ⭐ Rule: solo overrides mute
+            mutedChannels.remove(channel)
+
+            // UI sync
+            if let ch = channels.first(where: { $0.channel == channel }) {
+                ch.muted = false
+            }
         } else {
             soloChannels.remove(channel)
         }
     }
+
     
     //    func setTrackMute(_ trackIndex: Int, muted: Bool) {
     //        guard let seq = sequence, trackIndex < tracks.count else { return }
@@ -602,6 +627,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     let onPick: (URL) -> Void
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: false)
         picker.delegate = context.coordinator
         return picker
@@ -684,8 +710,8 @@ struct ContentView: View {
                 // Playback controls
                 VStack(spacing: 8) {
                     HStack {
-                        Text(formatTime(player.currentTime))
-                            .font(.system(.caption, design: .monospaced))
+                        Text(formatTime(isDraggingSlider ? sliderTime : player.currentTime))
+                               .font(.system(.caption, design: .monospaced))
                         Spacer()
                         Text(formatTime(player.totalDuration))
                             .font(.system(.caption, design: .monospaced))
@@ -769,7 +795,7 @@ struct ContentView: View {
             .navigationTitle("Fluid MIDI Player3.0")
         }
         .sheet(isPresented: $showSFPicker) {
-            DocumentPicker(types: [.data]) { url in
+            DocumentPicker(types: [.sf2]) { url in
                 showSFPicker = false
                 guard url.startAccessingSecurityScopedResource() else { return }
                 player.loadSoundFont(url)
