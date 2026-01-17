@@ -231,7 +231,7 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var currentTime: TimeInterval = 0
     @Published var totalDuration: TimeInterval = 0
     @Published var isPlaying = false
-    @Published var tempo: Double = 120.0 // BPM
+    @Published var playbackSpeed: Double = 1.0
     @Published var midiFileName: String = "No MIDI file loaded"
     @Published var soundFontFileName: String = "No SoundFont loaded"
     private var wasPlayingBeforeSeek = false
@@ -606,13 +606,12 @@ final class MIDIFluidPlayer: ObservableObject {
     //        }
     //    }
     
-    func setTempo(_ bpm: Double) {
+    func setPlaybackSpeed(_ speed: Double) {
         guard let player = player else { return }
-        
-        tempo = bpm
-        let rate = bpm / 120.0 // 120 is the default tempo
-        MusicPlayerSetPlayRateScalar(player, rate)
+        playbackSpeed = speed
+        MusicPlayerSetPlayRateScalar(player, speed)
     }
+
     
     @available(iOS 16.0, *)
     private func handle(_ list: UnsafePointer<MIDIEventList>) {
@@ -702,7 +701,8 @@ struct ContentView: View {
     @State private var tempoValue: Double = 120.0
     @State private var sliderTime: Double = 0
     @State private var isDraggingSlider = false
-    
+    @State private var speedValue: Double = 1.0
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -864,35 +864,48 @@ struct ContentView: View {
                 
                 Divider()
                 
-                // Tempo Control
+                // Playback Speed Control
                 VStack(spacing: 12) {
                     HStack {
-                        Image(systemName: "metronome")
+                        Image(systemName: "speedometer")
                             .foregroundColor(.orange)
-                        Text("Tempo: \(Int(tempoValue)) BPM")
+
+                        Text(String(format: "Speed: %.2fx", speedValue))
                             .font(.system(size: 15, weight: .semibold))
+
                         Spacer()
-                        Button(action: {
-                            tempoValue = 120.0
-                            player.setTempo(tempoValue)
-                        }) {
-                            Text("Reset")
-                                .font(.system(size: 13, weight: .medium))
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(Color.orange.opacity(0.2))
-                                .foregroundColor(.orange)
-                                .cornerRadius(6)
+
+                        Button("Reset") {
+                            speedValue = 1.0
+                            player.setPlaybackSpeed(1.0)
                         }
+                        .font(.system(size: 13, weight: .medium))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.orange.opacity(0.2))
+                        .foregroundColor(.orange)
+                        .cornerRadius(6)
                     }
-                    
-                    Slider(value: $tempoValue, in: 40...240, step: 1) { _ in
-                        player.setTempo(tempoValue)
+
+                    Slider(
+                        value: $speedValue,
+                        in: 0.5...1.5,
+                        step: 0.01
+                    ) {_ in 
+                        player.setPlaybackSpeed(speedValue)
                     }
                     .accentColor(.orange)
+
+                    // Preset buttons
+                    HStack(spacing: 12) {
+                        speedPresetButton(0.5)
+                        speedPresetButton(0.75)
+                        speedPresetButton(1.25)
+                    }
                 }
                 .padding(16)
                 .background(Color(uiColor: .systemGray6))
+
                 
                 Divider()
                 
@@ -1021,6 +1034,19 @@ struct ContentView: View {
             }
         }
     }
+    private func speedPresetButton(_ value: Double) -> some View {
+        Button(String(format: "%.2fx", value)) {
+            speedValue = value
+            player.setPlaybackSpeed(value)
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.2))
+        .foregroundColor(.orange)
+        .cornerRadius(8)
+    }
+
     
     private func formatTime(_ time: TimeInterval) -> String {
         let minutes = Int(time) / 60
