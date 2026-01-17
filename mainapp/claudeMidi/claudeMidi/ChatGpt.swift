@@ -110,7 +110,7 @@ final class FluidSynthEngine {
             applyBankAndProgram(ch)
             
         case 0xE0: // Pitch Bend
-            let bend = Int32(d1) | (Int32(d2) << 7)
+            let bend = (Int32(d2) << 7 | Int32(d1)) - 8192
             fluid_synth_pitch_bend(synth, Int32(ch), bend)
             
         default:
@@ -175,6 +175,33 @@ final class FluidSynthEngine {
             fluid_synth_all_notes_off(synth, Int32(ch))
         }
     }
+    
+    
+    func allNotesOff(channel: Int) {
+        fluid_synth_all_notes_off(synth, Int32(channel))
+        fluid_synth_cc(synth, Int32(channel), 64, 0) // release sustain
+    }
+    
+    func restoreChannelState(_ ch: Int) {
+        let bank: Int32 = (ch == 9)
+            ? 128
+            : Int32((bankMSB[ch] << 7) | bankLSB[ch])
+
+        fluid_synth_bank_select(synth, Int32(ch), bank)
+        fluid_synth_program_change(synth, Int32(ch), Int32(program[ch]))
+
+        // Restore controllers
+        fluid_synth_cc(synth, Int32(ch), 11, Int32(expression[ch])) // Expression
+        fluid_synth_cc(synth, Int32(ch), 64, sustain[ch] ? 127 : 0) // Sustain
+
+        // Restore pitch bend range
+        fluid_synth_pitch_wheel_sens(
+            synth,
+            Int32(ch),
+            Int32(pitchBendRange[ch])
+        )
+    }
+
     
     func systemReset() {
         fluid_synth_system_reset(synth)
@@ -247,6 +274,8 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     func loadMIDI(_ url: URL) {
+        synth.systemReset()
+        synth.allNotesOff()
         NewMusicSequence(&sequence)
         MusicSequenceFileLoad(sequence!, url as CFURL, .midiType, MusicSequenceLoadFlags())
         MusicSequenceSetMIDIEndpoint(sequence!, endpoint)
@@ -450,6 +479,11 @@ final class MIDIFluidPlayer: ObservableObject {
         var beats: MusicTimeStamp = 0
         MusicSequenceGetBeatsForSeconds(seq, time, &beats)
         MusicPlayerSetTime(player, beats)
+        
+        // 🔑 RESTORE CHANNEL STATE HERE
+          for ch in usedChannels {
+              synth.restoreChannelState(ch)
+          }
 
         currentTime = time
 
@@ -506,6 +540,7 @@ final class MIDIFluidPlayer: ObservableObject {
 
             // ⭐ Rule: mute cancels solo
             soloChannels.remove(channel)
+            synth.allNotesOff(channel: channel)
 
             // UI sync
             if let ch = channels.first(where: { $0.channel == channel }) {
@@ -534,6 +569,13 @@ final class MIDIFluidPlayer: ObservableObject {
             if let ch = channels.first(where: { $0.channel == channel }) {
                 ch.muted = false
             }
+            
+            // 🔑 IMMEDIATELY SILENCE NON-SOLO CHANNELS
+            for ch in usedChannels where ch != channel {
+                synth.allNotesOff(channel: ch)
+            }
+
+
         } else {
             soloChannels.remove(channel)
         }
@@ -596,6 +638,8 @@ final class MIDIFluidPlayer: ObservableObject {
                         let word = wordsPtr[i]
                         
                         let status = UInt8((word >> 16) & 0xFF)
+                        if status < 0x80 { continue }
+
                         let data1  = UInt8((word >> 8) & 0xFF)
                         let data2  = UInt8(word & 0xFF)
                         
@@ -957,7 +1001,7 @@ struct ContentView: View {
                 .listStyle(PlainListStyle())
                 
             }
-            .navigationTitle("Fluid MIDI Player")
+            .navigationTitle("Fluid MIDI Player4.0")
             .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showSFPicker) {
