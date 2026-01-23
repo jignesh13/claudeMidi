@@ -1,6 +1,12 @@
 import Foundation
 import AVFAudio
 
+enum MIDIOutputMode: String, CaseIterable {
+    case internalSynth = "Internal Synth"
+    case bluetooth = "Bluetooth MIDI"
+    case both = "Both"
+}
+
 final class MIDIChannelState: ObservableObject, Identifiable {
     let id = UUID()
     let channel: Int            // 0–15
@@ -235,6 +241,11 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var soundFontFileName: String = "No SoundFont loaded"
     @Published var transpose: Int = 0   // range: -24 ... +24
     private var wasPlayingBeforeSeek = false
+    @Published var outputMode: MIDIOutputMode = .internalSynth
+    @Published var connectedDestination: MIDIEndpointRef? = nil
+    private var midiOutPort = MIDIPortRef()
+    @Published var connectedDeviceName: String? = nil
+
 
     private var trackMap: [MusicTrack: Int] = [:]
     var isSeeking = false
@@ -246,13 +257,103 @@ final class MIDIFluidPlayer: ObservableObject {
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
-        
+
+        // ✅ MIDI client (already correct)
         MIDIClientCreate("FluidClient" as CFString, nil, nil, &midiClient)
-        
-        MIDIDestinationCreateWithProtocol(midiClient, "FluidDest" as CFString, MIDIProtocolID._1_0, &endpoint) { [weak self] eventList, _ in
+
+        // 🆕 MIDI OUTPUT PORT (REQUIRED for Bluetooth MIDI)
+        MIDIOutputPortCreate(
+            midiClient,
+            "MIDIOutPort" as CFString,
+            &midiOutPort
+        )
+
+        // ✅ Virtual MIDI destination (already correct)
+        MIDIDestinationCreateWithProtocol(
+            midiClient,
+            "FluidDest" as CFString,
+            MIDIProtocolID._1_0,
+            &endpoint
+        ) { [weak self] eventList, _ in
             self?.handle(eventList)
         }
     }
+    
+    func panicAllNotesOff() {
+        // Internal synth
+        synth.allNotesOff()
+
+        // External MIDI
+        if let dest = connectedDestination {
+            for channel in 0..<16 {
+                let status = UInt8(0xB0 | channel)
+                sendToMIDIDestination(dest, status: status, d1: 123, d2: 0) // CC123 = All Notes Off
+                sendToMIDIDestination(dest, status: status, d1: 120, d2: 0) // CC120 = All Sound Off
+            }
+        }
+    }
+
+
+    func refreshMIDIDestinations() {
+        connectedDestination = nil
+        connectedDeviceName = nil
+
+        let count = MIDIGetNumberOfDestinations()
+        guard count > 0 else { return }
+
+        for i in 0..<count {
+            let dest = MIDIGetDestination(i)
+
+            // Ignore private / virtual MIDI endpoints (e.g. Network MIDI "Session 1")
+            var isPrivate: Int32 = 0
+            let privateStatus = MIDIObjectGetIntegerProperty(
+                dest,
+                kMIDIPropertyPrivate,
+                &isPrivate
+            )
+
+            guard privateStatus == noErr, isPrivate == 0 else {
+                continue
+            }
+
+            // Found a real hardware MIDI destination
+            connectedDestination = dest
+
+            // Read human-readable device name
+            var nameRef: Unmanaged<CFString>?
+            let nameStatus = MIDIObjectGetStringProperty(
+                dest,
+                kMIDIPropertyName,
+                &nameRef
+            )
+
+            if nameStatus == noErr {
+                connectedDeviceName = nameRef?.takeRetainedValue() as String?
+            } else {
+                connectedDeviceName = "External MIDI Device"
+            }
+
+            break
+        }
+    }
+
+    private func sendToMIDIDestination(
+        _ destination: MIDIEndpointRef,
+        status: UInt8,
+        d1: UInt8,
+        d2: UInt8
+    ) {
+        var packet = MIDIPacket()
+        packet.timeStamp = 0
+        packet.length = 3
+        packet.data.0 = status
+        packet.data.1 = d1
+        packet.data.2 = d2
+
+        var packetList = MIDIPacketList(numPackets: 1, packet: packet)
+        MIDISend(midiOutPort, destination, &packetList)
+    }
+
     @objc private func handleAudioInterruption(_ notification: Notification) {
         guard
             let userInfo = notification.userInfo,
@@ -661,7 +762,22 @@ final class MIDIFluidPlayer: ObservableObject {
                                 note = UInt8(max(0, min(127, transposed)))
                             }
                         }
-                        synth.send(status: status, d1: note, d2: data2)
+                        switch outputMode {
+                        case .internalSynth:
+                            synth.send(status: status, d1: note, d2: data2)
+
+                        case .bluetooth:
+                            if let dest = connectedDestination {
+                                sendToMIDIDestination(dest, status: status, d1: note, d2: data2)
+                            }
+
+                        case .both:
+                            synth.send(status: status, d1: note, d2: data2)
+                            if let dest = connectedDestination {
+                                sendToMIDIDestination(dest, status: status, d1: note, d2: data2)
+                            }
+                        }
+
                     }
                 }
             }

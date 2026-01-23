@@ -86,7 +86,16 @@ struct ContentView: View {
                 url.stopAccessingSecurityScopedResource()
             }
         }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification
+            )
+        ) { _ in
+            player.refreshMIDIDestinations()
+        }
+
     }
+       
 }
 
 // MARK: - Page Tab Component
@@ -122,11 +131,18 @@ struct PlayerPage: View {
     @Binding var showMIDIPicker: Bool
     @Binding var sliderTime: Double
     @Binding var isDraggingSlider: Bool
-    
+    @State private var showBluetoothMIDIScreen = false
+
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 
+                Button {
+                    showBluetoothMIDIScreen = true
+                } label: {
+                    Image(systemName: "dot.radiowaves.left.and.right")
+                }
+
                 // File Info Section
                 VStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -282,6 +298,11 @@ struct PlayerPage: View {
             }
             .padding(.top, 16)
         }
+        .sheet(isPresented: $showBluetoothMIDIScreen, onDismiss: {
+            player.refreshMIDIDestinations()
+        }) {
+            BluetoothMIDIDeviceView()
+        }
     }
     
     private func formatTime(_ time: TimeInterval) -> String {
@@ -300,7 +321,47 @@ struct ControlsPage: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                
+                // Midi Output Speed Control
+                VStack(alignment: .leading, spacing: 12) {
+
+                    Text("MIDI Output")
+                        .font(.system(size: 15, weight: .semibold))
+
+                    Picker(
+                        "",
+                        selection: Binding(
+                            get: { player.outputMode },
+                            set: { newMode in
+                                player.panicAllNotesOff()
+                                player.outputMode = newMode
+                            }
+                        )
+                    ) {
+                        ForEach(MIDIOutputMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    if player.outputMode != .internalSynth {
+                        HStack(spacing: 6) {
+                            Image(systemName: player.connectedDestination == nil
+                                  ? "exclamationmark.triangle"
+                                  : "checkmark.circle")
+                                .foregroundColor(player.connectedDestination == nil ? .orange : .green)
+
+                            Text(player.connectedDestination == nil
+                                 ? "No Bluetooth MIDI device connected"
+                                 : "Connected: \(player.connectedDeviceName!)")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(16)
+                .background(Color(uiColor: .systemGray6))
+                .cornerRadius(12)
+
                 // Playback Speed Control
                 VStack(spacing: 12) {
                     HStack {

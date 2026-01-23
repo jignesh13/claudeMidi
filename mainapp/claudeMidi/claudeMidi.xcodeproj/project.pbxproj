@@ -18,7 +18,7 @@
 		422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728A2F078A2E00EE9B2B /* TrackRow.swift */; };
 		422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */; };
 		4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */; };
-		428E97942F02638B0069D44E /* PianoCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428E97932F02638B0069D44E /* PianoCopy.swift */; };
+		428E97942F02638B0069D44E /* BluetoothMIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */; };
 		42BD3E2E2F114B7D00E20685 /* FluidSynth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; };
 		42BD3E2F2F114B7D00E20685 /* FluidSynth.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		42E2E90B2F1560DA0070C29B /* PianoKeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E2E90A2F1560D90070C29B /* PianoKeyboardView.swift */; };
@@ -55,7 +55,7 @@
 		422D728A2F078A2E00EE9B2B /* TrackRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRow.swift; sourceTree = "<group>"; };
 		422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIDeviceView.swift; sourceTree = "<group>"; };
 		4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationMidi.swift; sourceTree = "<group>"; };
-		428E97932F02638B0069D44E /* PianoCopy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PianoCopy.swift; sourceTree = "<group>"; };
+		428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothMIDIDeviceView.swift; sourceTree = "<group>"; };
 		42E2E90A2F1560D90070C29B /* PianoKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PianoKeyboardView.swift; sourceTree = "<group>"; };
 		42FF6F5E2F051371006F90D0 /* MIDIFluidPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIFluidPlayer.swift; sourceTree = "<group>"; };
 		42FF6F602F051798006F90D0 /* sample.mid */ = {isa = PBXFileReference; lastKnownFileType = audio.midi; path = sample.mid; sourceTree = "<group>"; };
@@ -102,7 +102,7 @@
 				420D27D72F025536001084E9 /* Assets.xcassets */,
 				420D27D92F025536001084E9 /* Preview Content */,
 				420D27E12F02586D001084E9 /* Test.swift */,
-				428E97932F02638B0069D44E /* PianoCopy.swift */,
+				428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */,
 				4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */,
 				4213DB132F03A24B00EF59DD /* AuGraph.swift */,
 				4213DB272F04072500EF59DD /* AudioClass.swift */,
@@ -207,7 +207,7 @@
 				42E2E90B2F1560DA0070C29B /* PianoKeyboardView.swift in Sources */,
 				420A8C142F065D41006D9A95 /* FinalTryClaude.swift in Sources */,
 				4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */,
-				428E97942F02638B0069D44E /* PianoCopy.swift in Sources */,
+				428E97942F02638B0069D44E /* BluetoothMIDIDeviceView.swift in Sources */,
 				420D27D62F025533001084E9 /* ContentView.swift in Sources */,
 				42FF6F5F2F051371006F90D0 /* MIDIFluidPlayer.swift in Sources */,
 				4213DB282F04072500EF59DD /* AudioClass.swift in Sources */,
