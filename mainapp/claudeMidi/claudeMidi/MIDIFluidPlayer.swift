@@ -293,47 +293,29 @@ final class MIDIFluidPlayer: ObservableObject {
         }
     }
 
+    func connectToDevice(_ endpoint: MIDIEndpointRef, name: String) {
+        connectedDestination = endpoint
+        connectedDeviceName = name
+    }
 
     func refreshMIDIDestinations() {
-        connectedDestination = nil
-        connectedDeviceName = nil
-
-        let count = MIDIGetNumberOfDestinations()
-        guard count > 0 else { return }
-
-        for i in 0..<count {
-            let dest = MIDIGetDestination(i)
-
-            // Ignore private / virtual MIDI endpoints (e.g. Network MIDI "Session 1")
-            var isPrivate: Int32 = 0
-            let privateStatus = MIDIObjectGetIntegerProperty(
-                dest,
-                kMIDIPropertyPrivate,
-                &isPrivate
-            )
-
-            guard privateStatus == noErr, isPrivate == 0 else {
-                continue
+        // Only clear if the device is no longer available
+        if let currentDest = connectedDestination {
+            var stillExists = false
+            let count = MIDIGetNumberOfDestinations()
+            
+            for i in 0..<count {
+                let dest = MIDIGetDestination(i)
+                if dest == currentDest {
+                    stillExists = true
+                    break
+                }
             }
-
-            // Found a real hardware MIDI destination
-            connectedDestination = dest
-
-            // Read human-readable device name
-            var nameRef: Unmanaged<CFString>?
-            let nameStatus = MIDIObjectGetStringProperty(
-                dest,
-                kMIDIPropertyName,
-                &nameRef
-            )
-
-            if nameStatus == noErr {
-                connectedDeviceName = nameRef?.takeRetainedValue() as String?
-            } else {
-                connectedDeviceName = "External MIDI Device"
+            
+            if !stillExists {
+                connectedDestination = nil
+                connectedDeviceName = nil
             }
-
-            break
         }
     }
 
@@ -581,7 +563,7 @@ final class MIDIFluidPlayer: ObservableObject {
         MusicSequenceGetBeatsForSeconds(seq, time, &beats)
         MusicPlayerSetTime(player, beats)
         
-        // 🔑 RESTORE CHANNEL STATE HERE
+        // 🔒 RESTORE CHANNEL STATE HERE
           for ch in usedChannels {
               synth.restoreChannelState(ch)
           }
@@ -671,7 +653,7 @@ final class MIDIFluidPlayer: ObservableObject {
                 ch.muted = false
             }
             
-            // 🔑 IMMEDIATELY SILENCE NON-SOLO CHANNELS
+            // 🔒 IMMEDIATELY SILENCE NON-SOLO CHANNELS
             for ch in usedChannels where ch != channel {
                 synth.allNotesOff(channel: ch)
             }
@@ -787,4 +769,3 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
 }
-

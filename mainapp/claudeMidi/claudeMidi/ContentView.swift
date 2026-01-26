@@ -131,18 +131,11 @@ struct PlayerPage: View {
     @Binding var showMIDIPicker: Bool
     @Binding var sliderTime: Double
     @Binding var isDraggingSlider: Bool
-    @State private var showBluetoothMIDIScreen = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 
-                Button {
-                    showBluetoothMIDIScreen = true
-                } label: {
-                    Image(systemName: "dot.radiowaves.left.and.right")
-                }
-
                 // File Info Section
                 VStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -298,11 +291,6 @@ struct PlayerPage: View {
             }
             .padding(.top, 16)
         }
-        .sheet(isPresented: $showBluetoothMIDIScreen, onDismiss: {
-            player.refreshMIDIDestinations()
-        }) {
-            BluetoothMIDIDeviceView()
-        }
     }
     
     private func formatTime(_ time: TimeInterval) -> String {
@@ -317,6 +305,7 @@ struct ControlsPage: View {
     @ObservedObject var player: MIDIFluidPlayer
     @Binding var speedValue: Double
     @Binding var transposeValue: Int
+    @State private var showBluetoothDevices = false
     
     var body: some View {
         ScrollView {
@@ -344,18 +333,38 @@ struct ControlsPage: View {
                     .pickerStyle(.segmented)
 
                     if player.outputMode != .internalSynth {
-                        HStack(spacing: 6) {
-                            Image(systemName: player.connectedDestination == nil
-                                  ? "exclamationmark.triangle"
-                                  : "checkmark.circle")
-                                .foregroundColor(player.connectedDestination == nil ? .orange : .green)
+                        Button(action: {
+                            showBluetoothDevices = true
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: player.connectedDestination == nil
+                                      ? "exclamationmark.triangle"
+                                      : "checkmark.circle")
+                                    .foregroundColor(player.connectedDestination == nil ? .orange : .green)
 
-                            Text(player.connectedDestination == nil
-                                 ? "No Bluetooth MIDI device connected"
-                                 : "Connected: \(player.connectedDeviceName!)")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(player.connectedDestination == nil
+                                         ? "No Bluetooth MIDI device connected"
+                                         : "Connected: \(player.connectedDeviceName!)")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.primary)
+                                    
+                                    Text("Tap to select device")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(12)
+                            .background(Color(uiColor: .systemGray5))
+                            .cornerRadius(8)
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding(16)
@@ -455,6 +464,11 @@ struct ControlsPage: View {
             }
             .padding(.top, 16)
         }
+        .sheet(isPresented: $showBluetoothDevices, onDismiss: {
+            player.refreshMIDIDestinations()
+        }) {
+            BluetoothMIDIDeviceSelector(player: player)
+        }
     }
     
     private func speedPresetButton(_ value: Double) -> some View {
@@ -483,6 +497,133 @@ struct ControlsPage: View {
         .background(Color.purple.opacity(0.2))
         .foregroundColor(.purple)
         .cornerRadius(8)
+    }
+}
+
+import CoreMIDI
+import AudioToolbox
+// MARK: - Bluetooth MIDI Device Selector
+// MARK: - Bluetooth MIDI Device Selector
+struct BluetoothMIDIDeviceSelector: View {
+    @ObservedObject var player: MIDIFluidPlayer
+    @Environment(\.dismiss) var dismiss
+    @State private var availableDevices: [(endpoint: MIDIEndpointRef, name: String)] = []
+    @State private var showSystemMIDISettings = false
+    
+    var body: some View {
+        NavigationView {
+            List {
+                Section {
+                    ForEach(availableDevices, id: \.endpoint) { device in
+                        HStack {
+                            Image(systemName: "pianokeys")
+                                .foregroundColor(.blue)
+                                .frame(width: 24)
+                            
+                            Text(device.name)
+                                .font(.system(size: 15))
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            if player.connectedDestination == device.endpoint {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundColor(.green)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            player.connectToDevice(device.endpoint, name: device.name)
+                            dismiss()
+                        }
+                    }
+                    
+                    if availableDevices.isEmpty {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle")
+                                .foregroundColor(.orange)
+                            Text("No devices found")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                    }
+                } header: {
+                    Text("Available Devices")
+                }
+                
+                Section {
+                    HStack {
+                        Image(systemName: "dot.radiowaves.left.and.right")
+                            .foregroundColor(.blue)
+                            .frame(width: 24)
+                        
+                        Text("Search for Bluetooth MIDI Devices")
+                            .font(.system(size: 15))
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        showSystemMIDISettings = true
+                    }
+                }
+            }
+            .navigationTitle("Bluetooth MIDI")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                refreshDeviceList()
+            }
+            .sheet(isPresented: $showSystemMIDISettings, onDismiss: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    refreshDeviceList()
+                }
+            }) {
+                BluetoothMIDIDeviceView()
+            }
+        }
+    }
+    
+    private func refreshDeviceList() {
+        availableDevices.removeAll()
+        
+        let count = MIDIGetNumberOfDestinations()
+        guard count > 0 else { return }
+        
+        for i in 0..<count {
+            let dest = MIDIGetDestination(i)
+            
+           
+            
+            var nameRef: Unmanaged<CFString>?
+            let nameStatus = MIDIObjectGetStringProperty(
+                dest,
+                kMIDIPropertyName,
+                &nameRef
+            )
+            
+            let deviceName: String
+            if nameStatus == noErr, let name = nameRef?.takeRetainedValue() as String? {
+                deviceName = name
+            } else {
+                deviceName = "External MIDI Device \(i + 1)"
+            }
+            if deviceName != "FluidDest" {
+                availableDevices.append((endpoint: dest, name: deviceName))
+            }
+        }
     }
 }
 
