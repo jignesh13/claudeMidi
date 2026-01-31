@@ -293,8 +293,9 @@ struct PlayerPage: View {
                 if !player.karaokeLines.isEmpty {
                     KaraokeView(
                         lines: player.karaokeLines,
-                        currentTime: player.currentTime
-                    )
+                        currentTime: player.currentTime) { interval in
+                            player.seek(to: interval)
+                        }
                     
                 }
                 

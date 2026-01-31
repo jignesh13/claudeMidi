@@ -32,6 +32,7 @@ struct KaraokeView: View {
 
     let lines: [KaraokeLine]
     let currentTime: TimeInterval
+    let onLineTap: (TimeInterval) -> Void
 
 
     var body: some View {
@@ -45,7 +46,8 @@ struct KaraokeView: View {
 
                         KaraokeLineView(
                             line: line,
-                            currentTime: currentTime
+                            currentTime: currentTime,
+                            onLineTap: onLineTap
                         )
                         .id(line.id)
                         .opacity(isActive ? 1.0 : 0.40) // ⭐ cleaner karaoke look
@@ -85,6 +87,7 @@ struct KaraokeLineView: View {
 
     let line: KaraokeLine
     let currentTime: TimeInterval
+    let onLineTap: (TimeInterval) -> Void
 
     var body: some View {
         Text(attributedLine)
@@ -92,6 +95,13 @@ struct KaraokeLineView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .multilineTextAlignment(.leading)
             .padding(.horizontal)
+            .onTapGesture {
+                if let startTime = line.words.first?.time {
+                   print("tapped on:\(startTime)")
+                    onLineTap(startTime)
+
+                }
+            }
     }
 
     private var attributedLine: AttributedString {
