@@ -133,7 +133,7 @@ struct PlayerPage: View {
     @Binding var isDraggingSlider: Bool
 
     var body: some View {
-        ScrollView {
+       
             VStack(spacing: 20) {
                 
                 // File Info Section
@@ -274,6 +274,9 @@ struct PlayerPage: View {
                         )
                         .accentColor(.blue)
                         .frame(height: 44)
+                        
+                       
+
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -287,10 +290,22 @@ struct PlayerPage: View {
                     }
                 }
                 
+                if !player.karaokeLines.isEmpty {
+                    KaraokeView(
+                        lines: player.karaokeLines,
+                        currentTime: player.currentTime
+                    )
+                    
+                }
+                
+                if !player.karaokeWords.isEmpty {
+                    SingleLineKaraokeView(words: player.karaokeWords, currentTime: player.currentTime)
+                }
                 Spacer()
+                
             }
             .padding(.top, 16)
-        }
+       
     }
     
     private func formatTime(_ time: TimeInterval) -> String {

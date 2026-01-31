@@ -1,6 +1,7 @@
 import Foundation
 import AVFAudio
 
+
 enum MIDIOutputMode: String, CaseIterable {
     case internalSynth = "Internal Synth"
     case bluetooth = "Bluetooth MIDI"
@@ -190,16 +191,16 @@ final class FluidSynthEngine {
     
     func restoreChannelState(_ ch: Int) {
         let bank: Int32 = (ch == 9)
-            ? 128
-            : Int32((bankMSB[ch] << 7) | bankLSB[ch])
-
+        ? 128
+        : Int32((bankMSB[ch] << 7) | bankLSB[ch])
+        
         fluid_synth_bank_select(synth, Int32(ch), bank)
         fluid_synth_program_change(synth, Int32(ch), Int32(program[ch]))
-
+        
         // Restore controllers
         fluid_synth_cc(synth, Int32(ch), 11, Int32(expression[ch])) // Expression
         fluid_synth_cc(synth, Int32(ch), 64, sustain[ch] ? 127 : 0) // Sustain
-
+        
         // Restore pitch bend range
         fluid_synth_pitch_wheel_sens(
             synth,
@@ -207,7 +208,7 @@ final class FluidSynthEngine {
             Int32(pitchBendRange[ch])
         )
     }
-
+    
     
     func systemReset() {
         fluid_synth_system_reset(synth)
@@ -218,9 +219,11 @@ final class FluidSynthEngine {
 import Foundation
 import CoreMIDI
 import AudioToolbox
+import MidiParser
 
 @available(iOS 16.0, *)
 final class MIDIFluidPlayer: ObservableObject {
+    @Published var vocalEntryTime: TimeInterval = 0
     
     private var midiClient = MIDIClientRef()
     private var endpoint = MIDIEndpointRef()
@@ -234,6 +237,8 @@ final class MIDIFluidPlayer: ObservableObject {
     
     let synth = FluidSynthEngine()
     @Published var currentTime: TimeInterval = 0
+    @Published var karaokeLines: [KaraokeLine] = []
+    @Published var karaokeWords: [KaraokeWord] = []
     @Published var totalDuration: TimeInterval = 0
     @Published var isPlaying = false
     @Published var playbackSpeed: Double = 1.0
@@ -245,8 +250,8 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var connectedDestination: MIDIEndpointRef? = nil
     private var midiOutPort = MIDIPortRef()
     @Published var connectedDeviceName: String? = nil
-
-
+    
+    
     private var trackMap: [MusicTrack: Int] = [:]
     var isSeeking = false
     
@@ -257,17 +262,17 @@ final class MIDIFluidPlayer: ObservableObject {
             name: AVAudioSession.interruptionNotification,
             object: AVAudioSession.sharedInstance()
         )
-
+        
         // ✅ MIDI client (already correct)
         MIDIClientCreate("FluidClient" as CFString, nil, nil, &midiClient)
-
+        
         // 🆕 MIDI OUTPUT PORT (REQUIRED for Bluetooth MIDI)
         MIDIOutputPortCreate(
             midiClient,
             "MIDIOutPort" as CFString,
             &midiOutPort
         )
-
+        
         // ✅ Virtual MIDI destination (already correct)
         MIDIDestinationCreateWithProtocol(
             midiClient,
@@ -282,7 +287,7 @@ final class MIDIFluidPlayer: ObservableObject {
     func panicAllNotesOff() {
         // Internal synth
         synth.allNotesOff()
-
+        
         // External MIDI
         if let dest = connectedDestination {
             for channel in 0..<16 {
@@ -292,12 +297,12 @@ final class MIDIFluidPlayer: ObservableObject {
             }
         }
     }
-
+    
     func connectToDevice(_ endpoint: MIDIEndpointRef, name: String) {
         connectedDestination = endpoint
         connectedDeviceName = name
     }
-
+    
     func refreshMIDIDestinations() {
         // Only clear if the device is no longer available
         if let currentDest = connectedDestination {
@@ -318,7 +323,7 @@ final class MIDIFluidPlayer: ObservableObject {
             }
         }
     }
-
+    
     private func sendToMIDIDestination(
         _ destination: MIDIEndpointRef,
         status: UInt8,
@@ -331,11 +336,11 @@ final class MIDIFluidPlayer: ObservableObject {
         packet.data.0 = status
         packet.data.1 = d1
         packet.data.2 = d2
-
+        
         var packetList = MIDIPacketList(numPackets: 1, packet: packet)
         MIDISend(midiOutPort, destination, &packetList)
     }
-
+    
     @objc private func handleAudioInterruption(_ notification: Notification) {
         guard
             let userInfo = notification.userInfo,
@@ -357,6 +362,27 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     func loadMIDI(_ url: URL) {
+        karaokeLines = []
+        karaokeWords = []
+        let events = extractLyricsFromMIDI(url: url)
+        
+        switch classifyMidiText(events) {
+            
+        case .karaoke:
+            karaokeLines = buildKaraokeLines(from: events)
+            
+        case .chords:
+            karaokeWords = events.map {
+                KaraokeWord(
+                    time: $0.0,
+                    text: $0.1.replacingOccurrences(of: "%", with: "") + "   "
+                )
+            }
+            
+        case .none:
+            break
+        }
+        
         synth.systemReset()
         synth.allNotesOff()
         NewMusicSequence(&sequence)
@@ -375,7 +401,147 @@ final class MIDIFluidPlayer: ObservableObject {
         NewMusicPlayer(&player)
         MusicPlayerSetSequence(player!, sequence!)
         MusicPlayerPreroll(player!)
+        
+        // 🎤 ----------------------------
+        // 🎤 Karaoke preparation (ONCE)
+        // 🎤 ----------------------------
+        //        let karaokeEvents = extractLyricsAudioKit(from: url)
+        //        print("karaokeEvents: \(karaokeEvents)")
+        //        let karaokeEventsSeconds = convertKaraokeEventsToSeconds(
+        //            events: karaokeEvents,
+        //            sequence: sequence!
+        //        )
+        //        print("karaokeEventsSeconds:", karaokeEventsSeconds)
+        //        let introOffset = computeKaraokeIntroOffsetSeconds(
+        //            sequence: sequence!,
+        //            karaokeEvents: karaokeEvents
+        //        )
+        //        vocalEntryTime = introOffset
+        //
+        //        karaokeLines = buildKaraokeLines(
+        //            from: karaokeEventsSeconds
+        //        )
+        
+        
+        
     }
+    func beatsToSeconds(beats: Double, bpm: Double) -> Double {
+        return beats * 60.0 / bpm
+    }
+    
+    /// Extract lyrics from MIDI file using MidiParse library
+    private func extractLyricsFromMIDI(url: URL) -> [(time: TimeInterval, text: String)] {
+        guard let midiData = try? Data(contentsOf: url) else {
+            print("❌ Failed to load MIDI data")
+            return []
+        }
+        
+        let sut = MidiData()
+        sut.load(data: midiData)
+        let beatPerMinute: Double = Double(sut.beatsPerMinute.value)
+        
+        var allLyrics: [(time: TimeInterval, text: String)] = []
+        
+        // Extract all lyrics with timestamps
+        for track in sut.noteTracks {
+            for event in track.lyrics {
+                let seconds = beatsToSeconds(beats: event.timeStamp, bpm: beatPerMinute)
+                allLyrics.append((seconds, event.str))
+            }
+        }
+        
+        // Sort by time
+        allLyrics.sort { $0.time < $1.time }
+        
+        // Build karaoke lines
+        return allLyrics
+    }
+    
+    
+    
+    /// Build karaoke lines from lyrics data
+    private func buildKaraokeLines(from lyrics: [(time: TimeInterval, text: String)]) -> [KaraokeLine] {
+        var lines: [KaraokeLine] = []
+        var currentWords: [KaraokeWord] = []
+        var wordBuffer = ""
+        var wordStartTime: TimeInterval = 0
+        
+        for (time, text) in lyrics {
+            // Detect line breaks (empty text or just whitespace)
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                // Flush any buffered word
+                if !wordBuffer.isEmpty {
+                    currentWords.append(KaraokeWord(time: wordStartTime, text: wordBuffer))
+                    wordBuffer = ""
+                }
+                
+                // Create line if we have words
+                if !currentWords.isEmpty {
+                    lines.append(KaraokeLine(words: currentWords))
+                    currentWords = []
+                }
+                continue
+            }
+            
+            // Start new word if buffer is empty
+            if wordBuffer.isEmpty {
+                wordStartTime = time
+            }
+            
+            // Accumulate syllables/text
+            wordBuffer += text
+            
+            // Detect word boundary (ends with space)
+            if text.hasSuffix(" ") {
+                currentWords.append(KaraokeWord(time: wordStartTime, text: wordBuffer))
+                wordBuffer = ""
+            }
+        }
+        
+        // Flush remaining content
+        if !wordBuffer.isEmpty {
+            currentWords.append(KaraokeWord(time: wordStartTime, text: wordBuffer))
+        }
+        if !currentWords.isEmpty {
+            lines.append(KaraokeLine(words: currentWords))
+        }
+        
+        return lines
+    }
+    
+    private func classifyMidiText(_ events: [(TimeInterval, String)]) -> MidiTextType {
+        
+        guard !events.isEmpty else { return .none }
+        
+        var chordScore = 0
+        var lyricScore = 0
+        
+        for (_, text) in events.prefix(40) { // only scan early events
+            
+            // Strong chord indicators
+            if text.hasPrefix("%") { chordScore += 3 }
+            if text.contains("/") { chordScore += 2 }
+            if text.range(of: "[0-9]", options: .regularExpression) != nil {
+                chordScore += 1
+            }
+            
+            // Language indicators
+            if text.range(of: "[aeiouAEIOU]", options: .regularExpression) != nil {
+                lyricScore += 1
+            }
+            
+            if text.count > 2 && text.range(of: "[A-Za-z]{3}", options: .regularExpression) != nil {
+                lyricScore += 2
+            }
+        }
+        
+        if chordScore > lyricScore {
+            return .chords
+        }
+        
+        return .karaoke
+    }
+    
     
     private func detectUsedChannels() {
         guard let seq = sequence else { return }
@@ -548,39 +714,39 @@ final class MIDIFluidPlayer: ObservableObject {
     
     func seek(to time: TimeInterval) {
         guard let player = player, let seq = sequence else { return }
-
+        
         // Remember state
         print("seek")
         wasPlayingBeforeSeek = isPlaying
-
+        
         isSeeking = true
-
+        
         // Stop current sound safely
         synth.allNotesOff()
-
+        
         // Move time
         var beats: MusicTimeStamp = 0
         MusicSequenceGetBeatsForSeconds(seq, time, &beats)
         MusicPlayerSetTime(player, beats)
         
         // 🔒 RESTORE CHANNEL STATE HERE
-          for ch in usedChannels {
-              synth.restoreChannelState(ch)
-          }
-
+        for ch in usedChannels {
+            synth.restoreChannelState(ch)
+        }
+        
         currentTime = time
-
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.isSeeking = false
             print("seekend")
-
+            
             // ✅ Resume only if it was playing
             if self.wasPlayingBeforeSeek {
                 MusicPlayerStart(player)
             }
         }
     }
-
+    
     
     
     
@@ -606,8 +772,8 @@ final class MIDIFluidPlayer: ObservableObject {
         var seconds: TimeInterval = 0
         MusicSequenceGetSecondsForBeats(seq, time, &seconds)
         currentTime = seconds
-      
-
+        
+        
         if currentTime >= totalDuration {
             stop()
         }
@@ -620,11 +786,11 @@ final class MIDIFluidPlayer: ObservableObject {
         if muted {
             // Mute the channel
             mutedChannels.insert(channel)
-
+            
             // ⭐ Rule: mute cancels solo
             soloChannels.remove(channel)
             synth.allNotesOff(channel: channel)
-
+            
             // UI sync
             if let ch = channels.first(where: { $0.channel == channel }) {
                 ch.solo = false
@@ -632,22 +798,22 @@ final class MIDIFluidPlayer: ObservableObject {
         } else {
             mutedChannels.remove(channel)
         }
-
+        
         // ⭐ Safety: silence synth if everything is muted
         if areAllUsedChannelsMuted() {
             synth.allNotesOff()
         }
     }
-
+    
     
     func setChannelSolo(_ channel: Int, solo: Bool) {
         if solo {
             // Solo the channel
             soloChannels.insert(channel)
-
+            
             // ⭐ Rule: solo overrides mute
             mutedChannels.remove(channel)
-
+            
             // UI sync
             if let ch = channels.first(where: { $0.channel == channel }) {
                 ch.muted = false
@@ -657,13 +823,13 @@ final class MIDIFluidPlayer: ObservableObject {
             for ch in usedChannels where ch != channel {
                 synth.allNotesOff(channel: ch)
             }
-
-
+            
+            
         } else {
             soloChannels.remove(channel)
         }
     }
-
+    
     
     //    func setTrackMute(_ trackIndex: Int, muted: Bool) {
     //        guard let seq = sequence, trackIndex < tracks.count else { return }
@@ -694,7 +860,7 @@ final class MIDIFluidPlayer: ObservableObject {
         playbackSpeed = speed
         MusicPlayerSetPlayRateScalar(player, speed)
     }
-
+    
     
     @available(iOS 16.0, *)
     private func handle(_ list: UnsafePointer<MIDIEventList>) {
@@ -721,7 +887,7 @@ final class MIDIFluidPlayer: ObservableObject {
                         
                         let status = UInt8((word >> 16) & 0xFF)
                         if status < 0x80 { continue }
-
+                        
                         let data1  = UInt8((word >> 8) & 0xFF)
                         let data2  = UInt8(word & 0xFF)
                         
@@ -735,7 +901,7 @@ final class MIDIFluidPlayer: ObservableObject {
                         
                         let command = status & 0xF0
                         var note = data1
-
+                        
                         // 🎵 APPLY TRANSPOSE
                         if command == 0x90 || command == 0x80 {
                             // ❌ Do NOT transpose drums (Channel 10 → index 9)
@@ -744,22 +910,23 @@ final class MIDIFluidPlayer: ObservableObject {
                                 note = UInt8(max(0, min(127, transposed)))
                             }
                         }
+                        
                         switch outputMode {
                         case .internalSynth:
                             synth.send(status: status, d1: note, d2: data2)
-
+                            
                         case .bluetooth:
                             if let dest = connectedDestination {
                                 sendToMIDIDestination(dest, status: status, d1: note, d2: data2)
                             }
-
+                            
                         case .both:
                             synth.send(status: status, d1: note, d2: data2)
                             if let dest = connectedDestination {
                                 sendToMIDIDestination(dest, status: status, d1: note, d2: data2)
                             }
                         }
-
+                        
                     }
                 }
             }
@@ -767,5 +934,8 @@ final class MIDIFluidPlayer: ObservableObject {
             packet = MIDIEventPacketNext(&packet).pointee
         }
     }
+    
+    
+    
     
 }

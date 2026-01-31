@@ -7,17 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		420A8C142F065D41006D9A95 /* FinalTryClaude.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420A8C132F065D41006D9A95 /* FinalTryClaude.swift */; };
 		420D27D42F025533001084E9 /* claudeMidiApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27D32F025533001084E9 /* claudeMidiApp.swift */; };
 		420D27D62F025533001084E9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27D52F025533001084E9 /* ContentView.swift */; };
 		420D27D82F025536001084E9 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27D72F025536001084E9 /* Assets.xcassets */; };
 		420D27DB2F025536001084E9 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 420D27DA2F025536001084E9 /* Preview Assets.xcassets */; };
 		420D27E22F02586D001084E9 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = 420D27E12F02586D001084E9 /* Test.swift */; };
-		4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB132F03A24B00EF59DD /* AuGraph.swift */; };
-		4213DB282F04072500EF59DD /* AudioClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4213DB272F04072500EF59DD /* AudioClass.swift */; };
-		422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728A2F078A2E00EE9B2B /* TrackRow.swift */; };
-		422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */; };
-		4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */; };
+		422D728D2F078AAA00EE9B2B /* KaraokeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 422D728C2F078AAA00EE9B2B /* KaraokeView.swift */; };
+		423E2A5B2F2B927400016E2E /* MidiParser in Frameworks */ = {isa = PBXBuildFile; productRef = 423E2A5A2F2B927400016E2E /* MidiParser */; };
 		428E97942F02638B0069D44E /* BluetoothMIDIDeviceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */; };
 		42BD3E2E2F114B7D00E20685 /* FluidSynth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; };
 		42BD3E2F2F114B7D00E20685 /* FluidSynth.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 420E60452F0E9A5E0020404C /* FluidSynth.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -41,7 +37,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		420A8C132F065D41006D9A95 /* FinalTryClaude.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FinalTryClaude.swift; sourceTree = "<group>"; };
 		420D27D02F025533001084E9 /* claudeMidi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = claudeMidi.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		420D27D32F025533001084E9 /* claudeMidiApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = claudeMidiApp.swift; sourceTree = "<group>"; };
 		420D27D52F025533001084E9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -50,11 +45,7 @@
 		420D27E12F02586D001084E9 /* Test.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Test.swift; sourceTree = "<group>"; };
 		420E60452F0E9A5E0020404C /* FluidSynth.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = FluidSynth.xcframework; sourceTree = "<group>"; };
 		420E60482F0E9EDA0020404C /* claudeMidi-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "claudeMidi-Bridging-Header.h"; sourceTree = "<group>"; };
-		4213DB132F03A24B00EF59DD /* AuGraph.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuGraph.swift; sourceTree = "<group>"; };
-		4213DB272F04072500EF59DD /* AudioClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioClass.swift; sourceTree = "<group>"; };
-		422D728A2F078A2E00EE9B2B /* TrackRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackRow.swift; sourceTree = "<group>"; };
-		422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIDeviceView.swift; sourceTree = "<group>"; };
-		4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationMidi.swift; sourceTree = "<group>"; };
+		422D728C2F078AAA00EE9B2B /* KaraokeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KaraokeView.swift; sourceTree = "<group>"; };
 		428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BluetoothMIDIDeviceView.swift; sourceTree = "<group>"; };
 		42E2E90A2F1560D90070C29B /* PianoKeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PianoKeyboardView.swift; sourceTree = "<group>"; };
 		42FF6F5E2F051371006F90D0 /* MIDIFluidPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIFluidPlayer.swift; sourceTree = "<group>"; };
@@ -67,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				423E2A5B2F2B927400016E2E /* MidiParser in Frameworks */,
 				42BD3E2E2F114B7D00E20685 /* FluidSynth.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -103,13 +95,8 @@
 				420D27D92F025536001084E9 /* Preview Content */,
 				420D27E12F02586D001084E9 /* Test.swift */,
 				428E97932F02638B0069D44E /* BluetoothMIDIDeviceView.swift */,
-				4234CCD02F02ABD400DB5E81 /* NotificationMidi.swift */,
-				4213DB132F03A24B00EF59DD /* AuGraph.swift */,
-				4213DB272F04072500EF59DD /* AudioClass.swift */,
 				42FF6F5E2F051371006F90D0 /* MIDIFluidPlayer.swift */,
-				420A8C132F065D41006D9A95 /* FinalTryClaude.swift */,
-				422D728A2F078A2E00EE9B2B /* TrackRow.swift */,
-				422D728C2F078AAA00EE9B2B /* MIDIDeviceView.swift */,
+				422D728C2F078AAA00EE9B2B /* KaraokeView.swift */,
 				420E60482F0E9EDA0020404C /* claudeMidi-Bridging-Header.h */,
 				42E2E90A2F1560D90070C29B /* PianoKeyboardView.swift */,
 			);
@@ -148,6 +135,9 @@
 			dependencies = (
 			);
 			name = claudeMidi;
+			packageProductDependencies = (
+				423E2A5A2F2B927400016E2E /* MidiParser */,
+			);
 			productName = claudeMidi;
 			productReference = 420D27D02F025533001084E9 /* claudeMidi.app */;
 			productType = "com.apple.product-type.application";
@@ -176,6 +166,9 @@
 				Base,
 			);
 			mainGroup = 420D27C72F025533001084E9;
+			packageReferences = (
+				423E2A592F2B927400016E2E /* XCRemoteSwiftPackageReference "MidiParser" */,
+			);
 			productRefGroup = 420D27D12F025533001084E9 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -203,18 +196,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				422D728B2F078A2E00EE9B2B /* TrackRow.swift in Sources */,
 				42E2E90B2F1560DA0070C29B /* PianoKeyboardView.swift in Sources */,
-				420A8C142F065D41006D9A95 /* FinalTryClaude.swift in Sources */,
-				4213DB142F03A24B00EF59DD /* AuGraph.swift in Sources */,
 				428E97942F02638B0069D44E /* BluetoothMIDIDeviceView.swift in Sources */,
 				420D27D62F025533001084E9 /* ContentView.swift in Sources */,
 				42FF6F5F2F051371006F90D0 /* MIDIFluidPlayer.swift in Sources */,
-				4213DB282F04072500EF59DD /* AudioClass.swift in Sources */,
 				420D27D42F025533001084E9 /* claudeMidiApp.swift in Sources */,
-				4234CCD12F02ABD400DB5E81 /* NotificationMidi.swift in Sources */,
 				420D27E22F02586D001084E9 /* Test.swift in Sources */,
-				422D728D2F078AAA00EE9B2B /* MIDIDeviceView.swift in Sources */,
+				422D728D2F078AAA00EE9B2B /* KaraokeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -433,6 +421,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		423E2A592F2B927400016E2E /* XCRemoteSwiftPackageReference "MidiParser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/matsune/MidiParser.git";
+			requirement = {
+				branch = master;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		423E2A5A2F2B927400016E2E /* MidiParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 423E2A592F2B927400016E2E /* XCRemoteSwiftPackageReference "MidiParser" */;
+			productName = MidiParser;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 420D27C82F025533001084E9 /* Project object */;
 }
