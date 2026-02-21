@@ -83,7 +83,6 @@ final class FluidSynthEngine {
     // MARK: MIDI EVENT HANDLER
     // ===============================
     func send(status: UInt8, d1: UInt8, d2: UInt8) {
-        print("sendmethod: status =\(status) and d1 = \(d1) and d2 = \(d2)")
 
         let cmd = status & 0xF0
         let ch = Int(status & 0x0F)
