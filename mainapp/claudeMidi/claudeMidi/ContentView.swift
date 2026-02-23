@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var speedValue: Double = 1.0
     @State private var transposeValue: Int = 0
     @State private var currentPage = 0
-
+    @State private var addingToQueue = false
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -71,19 +71,31 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showSFPicker) {
-            DocumentPicker(types: [.sf2]) { url in
+            DocumentPicker(allowsMultipleSelection: false, types: [.sf2]) { urls in
                 showSFPicker = false
+                guard let url = urls.first else { return }
                 guard url.startAccessingSecurityScopedResource() else { return }
                 player.loadSoundFont(url)
                 url.stopAccessingSecurityScopedResource()
             }
         }
         .sheet(isPresented: $showMIDIPicker) {
-            DocumentPicker(types: [.midi]) { url in
+            DocumentPicker(allowsMultipleSelection: true, types: [.midi]) { urls in
                 showMIDIPicker = false
-                guard url.startAccessingSecurityScopedResource() else { return }
-                player.loadMIDI(url)
-                url.stopAccessingSecurityScopedResource()
+                
+                for url in urls {
+                    
+                    guard url.startAccessingSecurityScopedResource() else { continue }
+                    
+                    player.enqueue(url)   // Create bookmark here if needed
+                    
+                    url.stopAccessingSecurityScopedResource()
+                }
+                
+                // Auto-load first song if nothing loaded yet
+                if !player.isAnySongLoaded, !player.queue.isEmpty {
+                    player.preloadFromQueue(at: 0)
+                }
             }
         }
         .onReceive(
@@ -134,6 +146,7 @@ struct PlayerPage: View {
 
     var body: some View {
        
+        ZStack {
             VStack(spacing: 20) {
                 
                 // File Info Section
@@ -198,6 +211,26 @@ struct PlayerPage: View {
                 // Transport Controls
                 VStack(spacing: 16) {
                     HStack(spacing: 16) {
+                        // Prev Button
+                        Button(action: { player.skipToPrevious() }) {
+                                Image(systemName: "backward.fill")
+                                    .font(.system(size: 16))
+                                    .frame(width: 44, height: 40)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [Color.gray.opacity(0.6), Color.gray.opacity(0.8)],
+                                            startPoint: .top,
+                                            endPoint: .bottom
+                                        )
+                                    )
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                    .shadow(color: Color.black.opacity(0.2), radius: 4, y: 2)
+                            }
+                        .disabled(!(player.queue.count > 1 && player.currentQueueIndex - 1 >= 0))
+                            .opacity(!(player.queue.count > 1 && player.currentQueueIndex - 1 >= 0) ? 0.4 : 1.0)
+                        
+                        
                         Button(action: {
                             if player.isPlaying {
                                 player.pause()
@@ -243,6 +276,25 @@ struct PlayerPage: View {
                             .cornerRadius(8)
                             .shadow(color: Color.red.opacity(0.3), radius: 4, y: 2)
                         }
+                        
+                        // Next Button
+                          Button(action: { player.skipToNext() }) {
+                              Image(systemName: "forward.fill")
+                                  .font(.system(size: 16))
+                                  .frame(width: 44, height: 40)
+                                  .background(
+                                      LinearGradient(
+                                          colors: [Color.gray.opacity(0.6), Color.gray.opacity(0.8)],
+                                          startPoint: .top,
+                                          endPoint: .bottom
+                                      )
+                                  )
+                                  .foregroundColor(.white)
+                                  .cornerRadius(8)
+                                  .shadow(color: Color.black.opacity(0.2), radius: 4, y: 2)
+                          }
+                          .disabled(!(player.queue.count > 1 && player.currentQueueIndex + 1 < player.queue.count))
+                          .opacity(!(player.queue.count > 1 && player.currentQueueIndex + 1 < player.queue.count) ? 0.4 : 1.0)
                     }
                     
                     // Time Display and Slider
@@ -306,6 +358,33 @@ struct PlayerPage: View {
                 
             }
             .padding(.top, 16)
+            
+            if player.canShowProgressBar {
+                fullScreenProgressOverlay
+            }
+        }
+ 
+       
+    }
+    
+    private var fullScreenProgressOverlay: some View {
+        ZStack {
+               
+               Color.black.opacity(0.5)
+                   .ignoresSafeArea()
+               
+               VStack(spacing: 20) {
+                   
+                   ProgressView()
+                       .progressViewStyle(CircularProgressViewStyle())
+                       .scaleEffect(2.0)
+                       .tint(.blue)
+                   
+                   Text("Loading...")
+                       .foregroundColor(.white)
+                       .font(.system(size: 16, weight: .medium))
+               }
+           }
        
     }
     
@@ -760,13 +839,17 @@ import UIKit
 import UniformTypeIdentifiers
 
 struct DocumentPicker: UIViewControllerRepresentable {
+    let allowsMultipleSelection: Bool
     let types: [UTType]
-    let onPick: (URL) -> Void
+    let onPick: ([URL]) -> Void
+
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
 
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: false)
         picker.delegate = context.coordinator
+        picker.allowsMultipleSelection = allowsMultipleSelection   // ✅ Important
+
         return picker
     }
     
@@ -775,11 +858,11 @@ struct DocumentPicker: UIViewControllerRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(onPick: onPick) }
     
     final class Coordinator: NSObject, UIDocumentPickerDelegate {
-        let onPick: (URL) -> Void
-        init(onPick: @escaping (URL) -> Void) { self.onPick = onPick }
+        let onPick: ([URL]) -> Void
+        init(onPick: @escaping ([URL]) -> Void) { self.onPick = onPick }
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else { return }
-            onPick(url)
+            
+            onPick(urls)   // ✅ returns multiple
         }
     }
 }

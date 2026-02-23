@@ -38,7 +38,7 @@ final class FluidSynthEngine {
         fluid_settings_setnum(settings, "synth.gain", 0.8)
         fluid_settings_setstr(settings, "synth.interpolation", "4")
         fluid_settings_setint(settings, "synth.polyphony", 256)
-
+        
 //        fluid_settings_setint(settings, "synth.reverb.active", 1)
 //        fluid_settings_setnum(settings, "synth.reverb.room-size", 0.7)
 //        fluid_settings_setnum(settings, "synth.reverb.damp", 0.5)
@@ -93,11 +93,13 @@ final class FluidSynthEngine {
             fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
             
         case 0x90: // Note On
-            let scaledVelocity = min(127, Int(Double(d2) * 1.25))
-          
-            d2 == 0
-            ? fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
-            : fluid_synth_noteon(synth, Int32(ch), Int32(d1), Int32(scaledVelocity))
+            if d2 == 0 {
+                // Velocity 0 = Note Off
+                fluid_synth_noteoff(synth, Int32(ch), Int32(d1))
+            } else {
+                let scaledVelocity = Int32(min(127, Int(Double(d2) * 1.25)))
+                fluid_synth_noteon(synth, Int32(ch), Int32(d1), scaledVelocity)
+            }
             
         case 0xB0: // Control Change
             handleCC(ch: ch, cc: Int(d1), value: Int(d2))
@@ -107,9 +109,9 @@ final class FluidSynthEngine {
             applyBankAndProgram(ch)
             
         case 0xE0: // Pitch Bend
-            let bend = (Int32(d2) << 7 | Int32(d1)) - 8192
-            print("pitchband: \(ch) and \(bend)")
-            fluid_synth_pitch_bend(synth, Int32(ch), bend)
+            let bend = (Int32(d2) << 7) | Int32(d1)  // raw 0–16383, center = 8192
+               print("pitchbend: ch=\(ch) raw=\(bend) offset=\(bend - 8192)")
+               fluid_synth_pitch_bend(synth, Int32(ch), bend)
             
         default:
             break

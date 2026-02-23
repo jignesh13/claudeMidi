@@ -31,7 +31,9 @@ import MidiParser
 @available(iOS 16.0, *)
 final class MIDIFluidPlayer: ObservableObject {
     @Published var vocalEntryTime: TimeInterval = 0
-    
+    @Published var queue: [MIDIQueueItem] = []
+    @Published var currentQueueIndex: Int = 0
+    @Published var isQueueMode: Bool = false
     private var midiClient = MIDIClientRef()
     private var endpoint = MIDIEndpointRef()
     private var sequence: MusicSequence?
@@ -48,6 +50,8 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var karaokeWords: [KaraokeWord] = []
     @Published var totalDuration: TimeInterval = 0
     @Published var isPlaying = false
+    @Published var canShowProgressBar = false
+    @Published var isAnySongLoaded = false
     @Published var playbackSpeed: Double = 1.0
     @Published var midiFileName: String = "No MIDI file loaded"
     @Published var soundFontFileName: String = "No SoundFont loaded"
@@ -171,6 +175,7 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     func loadMIDI(_ url: URL) {
+        isAnySongLoaded = true
         karaokeLines = []
         karaokeWords = []
         let events = extractLyricsFromMIDI(url: url)
@@ -203,8 +208,6 @@ final class MIDIFluidPlayer: ObservableObject {
         buildChannelStates()
         calculateDuration()
         
-        // Calculate total duration
-        calculateDuration()
         
         NewMusicPlayer(&player)
         MusicPlayerSetSequence(player!, sequence!)
@@ -531,10 +534,11 @@ final class MIDIFluidPlayer: ObservableObject {
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             self.isSeeking = false
-            print("seekend")
             
             // ✅ Resume only if it was playing
             if self.wasPlayingBeforeSeek {
+                print("wasPlayingBeforeSeek")
+
                 MusicPlayerStart(player)
             }
         }
@@ -568,7 +572,15 @@ final class MIDIFluidPlayer: ObservableObject {
         
         
         if currentTime >= totalDuration {
-            stop()
+            if isQueueMode {
+                stop()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {[weak self] in
+                    self?.skipToNext()
+                }
+                
+            }
+            else { stop() }
+
         }
     }
     private func areAllUsedChannelsMuted() -> Bool {
@@ -731,4 +743,188 @@ final class MIDIFluidPlayer: ObservableObject {
     
     
     
+}
+struct MIDIQueueItem: Identifiable {
+    let id = UUID()
+    let fileName: String
+    private let bookmark: Data
+
+    /// Create from a live security-scoped URL (call while access is still active)
+    init?(url: URL) {
+        guard let bookmark = try? url.bookmarkData(
+            options: .minimalBookmark,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        ) else {
+            print("❌ Failed to create bookmark for \(url.lastPathComponent)")
+            return nil
+        }
+        self.fileName = url.lastPathComponent
+        self.bookmark = bookmark
+    }
+
+    /// Resolve the bookmark back to a usable URL, with security scope access
+    /// - Returns: URL with active security scope, or nil on failure
+    /// - Important: Caller must call `url.stopAccessingSecurityScopedResource()` when done
+    func resolveURL() -> URL? {
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: bookmark,
+            options: .withoutUI,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else {
+            print("❌ Failed to resolve bookmark for \(fileName)")
+            return nil
+        }
+
+        guard url.startAccessingSecurityScopedResource() else {
+            print("❌ Security scope access denied for \(fileName)")
+            return nil
+        }
+
+        return url
+    }
+}
+
+extension MIDIFluidPlayer {
+
+    // ── Queue Management ────────────────────────────────────
+
+    /// Enqueue a single MIDI file.
+    /// Call this while the security-scoped resource is still accessible.
+    func enqueue(_ url: URL) {
+        guard let item = MIDIQueueItem(url: url) else { return }
+        queue.append(item)
+        if queue.count > 1 {
+            isQueueMode = true
+        }
+    }
+
+    /// Enqueue multiple MIDI files.
+    /// Call this while security-scoped resources are still accessible.
+    func enqueue(_ urls: [URL]) {
+        let items = urls.compactMap { MIDIQueueItem(url: $0) }
+        queue.append(contentsOf: items)
+        if queue.count > 1 {
+            isQueueMode = true
+        }
+    }
+
+    /// Remove item at a specific index
+    func removeFromQueue(at index: Int) {
+        guard index < queue.count else { return }
+        queue.remove(at: index)
+        if index < currentQueueIndex {
+            currentQueueIndex = max(0, currentQueueIndex - 1)
+        }
+        if queue.count > 1 {
+            isQueueMode = true
+        }
+    }
+
+    /// Reorder items (for drag-to-reorder in List)
+    func moveInQueue(from source: IndexSet, to destination: Int) {
+        queue.move(fromOffsets: source, toOffset: destination)
+    }
+
+    /// Clear the entire queue and stop playback
+    func clearQueue() {
+        stop()
+        queue.removeAll()
+        currentQueueIndex = 0
+        isQueueMode = false
+    }
+
+    // ── Playback ─────────────────────────────────────────────
+
+    /// Start playing the queue from the first item
+    func playQueue() {
+        guard !queue.isEmpty else { return }
+        isQueueMode = true
+        currentQueueIndex = 0
+        loadAndPlay(queue[currentQueueIndex])
+    }
+    
+    func preloadFromQueue(at index: Int) {
+        guard index < queue.count else { return }
+        loadOnly(queue[index])
+    }
+    /// Start playing the queue from a specific index (e.g. user taps a song)
+    func playQueue(from index: Int) {
+        guard index < queue.count else { return }
+        isQueueMode = true
+        currentQueueIndex = index
+        loadAndPlay(queue[currentQueueIndex])
+    }
+
+    /// Skip to the next song
+    func skipToNext() {
+        guard isQueueMode, currentQueueIndex + 1 < queue.count else {
+            stop(); return
+        }
+        currentQueueIndex += 1
+        loadAndPlay(queue[currentQueueIndex])
+    }
+
+    /// Skip to the previous song (or restart current if at beginning)
+    func skipToPrevious() {
+        guard isQueueMode, currentQueueIndex > 0 else {
+            seek(to: 0)
+            if !isPlaying { play() }
+            return
+        }
+        currentQueueIndex -= 1
+        loadAndPlay(queue[currentQueueIndex])
+    }
+
+    // ── Internal ─────────────────────────────────────────────
+
+    /// Resolve bookmark → load → play, then release security scope
+    internal func loadAndPlay(_ item: MIDIQueueItem) {
+        stop()
+        guard let url = item.resolveURL() else {
+            print("❌ Skipping \(item.fileName) — could not resolve URL")
+            skipToNext() // skip broken items gracefully
+            return
+        }
+        canShowProgressBar = true
+        loadMIDI(url)
+        url.stopAccessingSecurityScopedResource() // safe to release after loadMIDI copies data
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {[weak self] in
+            self?.play()
+            self?.canShowProgressBar = false
+
+
+        }
+    }
+
+    internal func loadOnly(_ item: MIDIQueueItem) {
+        stop()
+
+        guard let url = item.resolveURL() else {
+            print("❌ Could not resolve URL for \(item.fileName)")
+            return
+        }
+
+        loadMIDI(url)
+        url.stopAccessingSecurityScopedResource()
+    }
+    /// Called by updateCurrentTime() when a song finishes
+    internal func playNextInQueue() {
+        if currentQueueIndex + 1 < queue.count {
+            currentQueueIndex += 1
+            loadAndPlay(queue[currentQueueIndex])
+        } else {
+            isQueueMode = false
+            stop()
+        }
+    }
+
+
+
+    var currentQueueItem: MIDIQueueItem? {
+        guard isQueueMode, currentQueueIndex < queue.count else { return nil }
+        return queue[currentQueueIndex]
+    }
 }
