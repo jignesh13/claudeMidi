@@ -7,6 +7,9 @@ extension UTType {
 }
 
 import Foundation
+import CoreMIDI
+import AudioToolbox
+import MidiParser
 
 final class FluidSynthEngine {
     
@@ -207,6 +210,155 @@ final class FluidSynthEngine {
         )
     }
     
+    func exportToWAV(soundFontUrl: URL?, midiURL: URL, outputURL: URL, progress: @escaping (Double) -> Void, completion: @escaping (Bool) -> Void) {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+
+            guard let self = self else { return }
+
+            guard let exportSettings = new_fluid_settings() else {
+                completion(false); return
+            }
+            defer { delete_fluid_settings(exportSettings) }
+
+            fluid_settings_setstr(exportSettings, "audio.driver", "file")
+            fluid_settings_setstr(exportSettings, "audio.file.name", outputURL.path)
+            fluid_settings_setstr(exportSettings, "audio.file.type", "wav")
+            fluid_settings_setstr(exportSettings, "audio.file.format", "s16")
+            fluid_settings_setnum(exportSettings, "synth.sample-rate", 44100)
+            fluid_settings_setnum(exportSettings, "synth.gain", 0.8)
+            fluid_settings_setint(exportSettings, "synth.reverb.active", 0)
+            fluid_settings_setint(exportSettings, "synth.chorus.active", 0)
+            fluid_settings_setint(exportSettings, "synth.polyphony", 256)
+            fluid_settings_setint(exportSettings, "synth.lock-memory", 0)
+            
+            guard let exportSynth = new_fluid_synth(exportSettings) else {
+                completion(false); return
+            }
+            defer { delete_fluid_synth(exportSynth) }
+            
+            guard let sfURL = soundFontUrl else {
+                print("❌ No soundfont URL stored")
+                completion(false); return
+            }
+            print("✅ SF2 path: \(sfURL.path)")
+
+            let sfResult = fluid_synth_sfload(exportSynth, sfURL.path, 1)
+            print("SF load result: \(sfResult)") // -1 = failed, >= 0 = success
+            guard sfResult >= 0 else {
+                print("❌ Soundfont failed to load")
+                completion(false); return
+            }
+
+            guard let exportPlayer = new_fluid_player(exportSynth) else {
+                completion(false); return
+            }
+            defer { delete_fluid_player(exportPlayer) }
+            
+            let playerAddResult = fluid_player_add(exportPlayer, midiURL.path)
+            print("Player add result: \(playerAddResult)") // -1 = failed
+            guard playerAddResult == 0 else {
+                print("❌ MIDI file failed to load into player")
+                completion(false); return
+            }
+            guard let renderer = new_fluid_file_renderer(exportSynth) else {
+                print("❌ Failed to create file renderer")
+                completion(false); return
+            }
+            defer { delete_fluid_file_renderer(renderer) }
+            
+            fluid_player_play(exportPlayer)
+            print("▶️ Player started, status: \(fluid_player_get_status(exportPlayer))")
+            // Check what was actually written
+            DispatchQueue.global().asyncAfter(deadline: .now() + 1) {
+                let path = outputURL.path.removingPercentEncoding ?? outputURL.path
+                print("File exists: \(FileManager.default.fileExists(atPath: path))")
+                print("File size after 1s: \(((try? FileManager.default.attributesOfItem(atPath: path))?[.size] as? Int) ?? 0)")
+            }
+            // Get total duration for progress tracking
+            // We poll status until done
+            var blockCount = 0
+            let sampleRate = 44100
+            let blockSize  = 64
+            
+            while fluid_player_get_status(exportPlayer) == 1 {
+                if fluid_file_renderer_process_block(renderer) != 0 {
+                    print("❌ Renderer block failed at block \(blockCount)")
+
+                    break
+                }
+                blockCount += 1
+                
+                // Report progress every ~0.5 seconds worth of blocks
+                if blockCount % (sampleRate / blockSize / 2) == 0 {
+                    let secondsRendered = Double(blockCount * blockSize) / Double(sampleRate)
+                    print("⏱ Rendered \(secondsRendered)s")
+
+                    DispatchQueue.main.async {
+                        progress(secondsRendered)
+                    }
+                }
+            }
+            print("✅ Render loop done, blocks: \(blockCount)")
+            let finalPath = outputURL.path.removingPercentEncoding ?? outputURL.path
+            let finalSize = ((try? FileManager.default.attributesOfItem(atPath: finalPath))?[.size] as? Int) ?? 0
+            print("Final WAV size: \(finalSize) bytes")
+            print("Final WAV path: \(finalPath)")
+
+            
+            // Render ~3 second tail for note release
+            let tailBlocks = (sampleRate / blockSize) * 3
+            for _ in 0..<tailBlocks {
+                fluid_file_renderer_process_block(renderer)
+            }
+            self.addWAVHeader(to: outputURL)
+            // Try reading first few bytes to check WAV header
+            if let fileHandle = FileHandle(forReadingAtPath: finalPath) {
+                let header = fileHandle.readData(ofLength: 4)
+                fileHandle.closeFile()
+                let headerStr = String(bytes: header, encoding: .ascii) ?? "unreadable"
+                print("WAV header bytes: \(headerStr)") // should print "RIFF"
+            }
+            completion(true)
+        }
+    }
+    
+    private func addWAVHeader(to fileURL: URL, sampleRate: Int = 44100, channels: Int = 2, bitsPerSample: Int = 16) {
+        guard let fileHandle = try? FileHandle(forUpdating: fileURL) else { return }
+        defer { fileHandle.closeFile() }
+        
+        let dataSize = UInt32((try? FileManager.default.attributesOfItem(atPath: fileURL.path))?[.size] as? Int ?? 0)
+        let byteRate = UInt32(sampleRate * channels * bitsPerSample / 8)
+        let blockAlign = UInt16(channels * bitsPerSample / 8)
+        
+        var header = Data()
+        
+        // RIFF chunk
+        header.append(contentsOf: "RIFF".utf8)
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(dataSize + 36).littleEndian) { Array($0) })
+        header.append(contentsOf: "WAVE".utf8)
+        
+        // fmt chunk
+        header.append(contentsOf: "fmt ".utf8)
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(16).littleEndian) { Array($0) })          // chunk size
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(1).littleEndian) { Array($0) })           // PCM format
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(channels).littleEndian) { Array($0) })    // channels
+        header.append(contentsOf: withUnsafeBytes(of: UInt32(sampleRate).littleEndian) { Array($0) })  // sample rate
+        header.append(contentsOf: withUnsafeBytes(of: byteRate.littleEndian) { Array($0) })            // byte rate
+        header.append(contentsOf: withUnsafeBytes(of: blockAlign.littleEndian) { Array($0) })          // block align
+        header.append(contentsOf: withUnsafeBytes(of: UInt16(bitsPerSample).littleEndian) { Array($0) }) // bits per sample
+        
+        // data chunk
+        header.append(contentsOf: "data".utf8)
+        header.append(contentsOf: withUnsafeBytes(of: dataSize.littleEndian) { Array($0) })
+        
+        // Read existing raw PCM data
+        let pcmData = fileHandle.readDataToEndOfFile()
+        
+        // Write header + PCM back to file
+        fileHandle.seek(toFileOffset: 0)
+        fileHandle.write(header)
+        fileHandle.write(pcmData)
+    }
     func gmResetChannel(_ ch: Int) {
         // Reset controllers
         fluid_synth_cc(synth, Int32(ch), 121, 0)

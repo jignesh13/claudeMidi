@@ -1,4 +1,5 @@
 import Foundation
+import AVFoundation
 import AVFAudio
 
 
@@ -34,6 +35,8 @@ final class MIDIFluidPlayer: ObservableObject {
     @Published var queue: [MIDIQueueItem] = []
     @Published var currentQueueIndex: Int = 0
     @Published var isQueueMode: Bool = false
+    @Published var isExporting = false
+    @Published var exportProgress: Double = 0  // seconds rendered so far
     private var midiClient = MIDIClientRef()
     private var endpoint = MIDIEndpointRef()
     private var sequence: MusicSequence?
@@ -43,6 +46,9 @@ final class MIDIFluidPlayer: ObservableObject {
     private var usedChannels = Set<Int>()
     private var mutedChannels = Set<Int>()
     private var soloChannels = Set<Int>()
+    private var soundFontBookmark: Data?
+    private var currentMIDIBookmark: Data?
+    private(set) var currentSoundFontURL: URL?
     
     let synth = FluidSynthEngine()
     @Published var currentTime: TimeInterval = 0
@@ -167,6 +173,8 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     func loadSoundFont(_ url: URL) {
+        currentSoundFontURL = url  // ← ADD THIS
+
         synth.loadSoundFont(url)
         soundFontFileName = url.lastPathComponent
         for ch in 0..<16 {
@@ -176,6 +184,11 @@ final class MIDIFluidPlayer: ObservableObject {
     
     func loadMIDI(_ url: URL) {
         isAnySongLoaded = true
+        currentMIDIBookmark = try? url.bookmarkData(
+                options: .minimalBookmark,
+                includingResourceValuesForKeys: nil,
+                relativeTo: nil
+            )
         karaokeLines = []
         karaokeWords = []
         let events = extractLyricsFromMIDI(url: url)
@@ -741,8 +754,100 @@ final class MIDIFluidPlayer: ObservableObject {
     }
     
     
+    func exportCurrentMIDI(completion: @escaping (URL?) -> Void) {
+        guard let bookmark = currentMIDIBookmark else {
+            print("❌ No MIDI loaded")
+            completion(nil)
+            return
+        }
+        
+        var isStale = false
+        guard let midiURL = try? URL(
+            resolvingBookmarkData: bookmark,
+            options: .withoutUI,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else {
+            completion(nil)
+            return
+        }
+        
+        _ = midiURL.startAccessingSecurityScopedResource()
+        
+        let exportName = midiURL.deletingPathExtension().lastPathComponent
+        let outputWAV = FileManager.default.temporaryDirectory
+            .appendingPathComponent(exportName + ".wav")
+        
+        try? FileManager.default.removeItem(at: outputWAV)
+        
+        isExporting    = true
+        exportProgress = 0
+        
+        synth.exportToWAV(
+            soundFontUrl: currentSoundFontURL,
+            midiURL: midiURL,
+            outputURL: outputWAV,
+            progress: { [weak self] secondsRendered in
+                self?.exportProgress = secondsRendered
+            },
+            completion: { [weak self] success in
+                midiURL.stopAccessingSecurityScopedResource()
+                DispatchQueue.main.async {
+                    self?.isExporting = false
+                    completion(success ? outputWAV : nil)
+                }
+            }
+        )
+    }
+
+    private func convertWAVtoM4A(wavURL: URL, m4aURL: URL, completion: @escaping (Bool) -> Void) {
+        
+        // Check WAV file exists
+        print("WAV exists: \(FileManager.default.fileExists(atPath: wavURL.path))")
+        print("WAV size: \(((try? FileManager.default.attributesOfItem(atPath: wavURL.path))?[.size] as? Int) ?? 0) bytes")
+        
+        let asset = AVURLAsset(url: wavURL)
+        guard let exportSession = AVAssetExportSession(
+            asset: asset,
+            presetName: AVAssetExportPresetAppleM4A
+        ) else {
+            print("❌ Failed to create AVAssetExportSession")
+            completion(false); return
+        }
+        
+        exportSession.outputURL      = m4aURL
+        exportSession.outputFileType = .m4a
+        
+        exportSession.exportAsynchronously {
+            print("Export status: \(exportSession.status.rawValue)")
+            print("Export error: \(exportSession.error?.localizedDescription ?? "none")")
+            try? FileManager.default.removeItem(at: wavURL)
+            completion(exportSession.status == .completed)
+        }
+    }
     
-    
+
+    func storeSoundFontBookmark(_ url: URL) {
+        soundFontBookmark = try? url.bookmarkData(
+            options: .minimalBookmark,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
+        )
+    }
+
+    func resolveSoundFontURL() -> URL? {
+        guard let bookmark = soundFontBookmark else { return nil }
+        var isStale = false
+        guard let url = try? URL(
+            resolvingBookmarkData: bookmark,
+            options: .withoutUI,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        ) else { return nil }
+        
+        guard url.startAccessingSecurityScopedResource() else { return nil }
+        return url // caller must call stopAccessingSecurityScopedResource() when done
+    }
 }
 struct MIDIQueueItem: Identifiable {
     let id = UUID()

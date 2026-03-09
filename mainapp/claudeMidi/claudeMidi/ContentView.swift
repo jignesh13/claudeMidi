@@ -76,6 +76,7 @@ struct ContentView: View {
                 guard let url = urls.first else { return }
                 guard url.startAccessingSecurityScopedResource() else { return }
                 player.loadSoundFont(url)
+                player.storeSoundFontBookmark(url) // ← now this actually exists
                 url.stopAccessingSecurityScopedResource()
             }
         }
@@ -204,7 +205,23 @@ struct PlayerPage: View {
                                 .foregroundColor(.white)
                                 .cornerRadius(8)
                         }
+                        
+                       
                     }
+                    
+                    Button("Export Audio") {
+                        player.exportCurrentMIDI { url in
+                            guard let url = url else {
+                                print("❌ Export failed")
+                                return
+                            }
+                            print("exported:\(url)")
+                            // Share the file
+                            let sheet = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                            UIApplication.shared.windows.first?.rootViewController?.present(sheet, animated: true)
+                        }
+                    }
+                    .disabled(player.isExporting || !player.isAnySongLoaded)
                 }
                 .padding(.horizontal, 16)
                 
@@ -361,6 +378,11 @@ struct PlayerPage: View {
             
             if player.canShowProgressBar {
                 fullScreenProgressOverlay
+            }
+            
+            if player.isExporting {
+                Text("Exporting... \(Int(player.exportProgress))s rendered")
+                ProgressView()
             }
         }
  
