@@ -772,8 +772,26 @@ final class MIDIFluidPlayer: ObservableObject {
             return
         }
         
-        _ = midiURL.startAccessingSecurityScopedResource()
+        guard let sfBookmark = soundFontBookmark else {
+            print("❌ No soundfont loaded")
+            completion(nil)
+            return
+        }
         
+        var isStale1 = false
+        guard let currentSoundFontURL = try? URL(
+            resolvingBookmarkData: sfBookmark,
+            options: .withoutUI,
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale1
+        ) else {
+            completion(nil)
+            return
+        }
+        
+        _ = midiURL.startAccessingSecurityScopedResource()
+        _ = currentSoundFontURL.startAccessingSecurityScopedResource()
+
         let exportName = midiURL.deletingPathExtension().lastPathComponent
         let outputWAV = FileManager.default.temporaryDirectory
             .appendingPathComponent(exportName + ".wav")
@@ -792,6 +810,8 @@ final class MIDIFluidPlayer: ObservableObject {
             },
             completion: { [weak self] success in
                 midiURL.stopAccessingSecurityScopedResource()
+                currentSoundFontURL.stopAccessingSecurityScopedResource()
+
                 DispatchQueue.main.async {
                     self?.isExporting = false
                     completion(success ? outputWAV : nil)
